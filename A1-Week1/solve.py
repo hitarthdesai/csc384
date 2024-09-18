@@ -94,15 +94,15 @@ def get_successors(state):
             if new_box_location in state.board.robots or new_box_location in state.board.boxes or new_box_location in state.board.obstacles:
                 continue
 
-        # Create a new state with the box moved in the direction
-        new_state = State(state.board.copy(), state.hfn, state.f, state.depth, state)
-        new_state.board.robots[0] = new_robot_location
+        # Create a new board with the new robot and box locations
+        new_board = Board(state.board.width, state.board.height, state.board.robots.copy(), state.board.boxes.copy(), state.board.obstacles.copy(), state.board.storage.copy())
+        new_board.robots[0] = new_robot_location
         if box_at_new_robot_location is not None:
-            new_state.board.boxes.remove(box_at_new_robot_location)
-            new_state.board.boxes.append(new_box_location)
+            new_board.boxes = new_board.boxes.difference(frozenset([box_at_new_robot_location]))
+            new_board.boxes = new_board.boxes.union(frozenset([new_box_location]))
         
 
-        successors.append(State(new_state, state.hfn, state.f, state.depth + 1, state))
+        successors.append(State(new_board, state.hfn, state.f, state.depth + 1, state))
     
     return successors
 
