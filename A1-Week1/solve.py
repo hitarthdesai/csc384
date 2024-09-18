@@ -71,15 +71,24 @@ def get_successors(state):
 
     successors = []
     
-    robot = state.board.robots[0]
     # We need to check all possible moves for the robot
     for direction in DIRECTIONS:
-        print("Evalueating direction: ", direction)
         # Create a new board to represent the new state
-        new_board = Board(state.board.name, state.board.width, state.board.height, state.board.robots.copy(), state.board.boxes.copy(), state.board.obstacles.copy(), state.board.storage.copy())
+        new_board = Board(
+            state.board.name,
+            state.board.width,
+            state.board.height,
+            state.board.robots.copy(),
+            state.board.boxes.copy(),
+            state.board.storage.copy(),
+            state.board.obstacles.copy()
+        )
         
         # Robot cannot move on top of another robot or an obstacle
-        new_robot_location = (robot[0] + direction[0], robot[1] + direction[1])
+        new_robot_location = (
+            state.board.robots[0][0] + direction[0],
+            state.board.robots[0][1] + direction[1]
+        )
         if new_robot_location in state.board.robots or new_robot_location in state.board.obstacles:
             continue
         new_board.robots[0] = new_robot_location
@@ -102,7 +111,6 @@ def get_successors(state):
             new_board.boxes = new_board.boxes.union(frozenset([new_box_location]))
         
 
-        print("New board: ", new_board.__str__())
         successors.append(State(new_board, state.hfn, state.f, state.depth + 1, state))
     
     return successors
