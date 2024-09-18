@@ -95,7 +95,7 @@ def get_successors(state):
                 continue
 
         # Create a new board with the new robot and box locations
-        new_board = Board(state.board.width, state.board.height, state.board.robots.copy(), state.board.boxes.copy(), state.board.obstacles.copy(), state.board.storage.copy())
+        new_board = Board(state.board.name, state.board.width, state.board.height, state.board.robots.copy(), state.board.boxes.copy(), state.board.obstacles.copy(), state.board.storage.copy())
         new_board.robots[0] = new_robot_location
         if box_at_new_robot_location is not None:
             new_board.boxes = new_board.boxes.difference(frozenset([box_at_new_robot_location]))
