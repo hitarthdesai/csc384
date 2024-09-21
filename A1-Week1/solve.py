@@ -107,8 +107,8 @@ def get_successors(state):
             if new_box_location in state.board.robots or new_box_location in state.board.boxes or new_box_location in state.board.obstacles:
                 continue
 
-            new_board.boxes = new_board.boxes.difference(frozenset([box_at_new_robot_location]))
-            new_board.boxes = new_board.boxes.union(frozenset([new_box_location]))
+            new_board.boxes.remove(box_at_new_robot_location)
+            new_board.boxes = new_board.boxes.append(new_box_location)
         
 
         successors.append(State(new_board, state.hfn, state.f, state.depth + 1, state))
