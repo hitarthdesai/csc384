@@ -175,7 +175,39 @@ def a_star(init_board, hfn):
     :rtype: List[State], int
     """
 
-    raise NotImplementedError
+    frontier = []
+    init_state = State(init_board, hfn, hfn(init_board), 0, None)
+    heappush(frontier, init_state)
+
+    explored = set()
+
+    states = {}
+    hashed_board = init_board.__hash__()
+    states[hashed_board] = init_state
+
+    while frontier:
+        current_state = heappop(frontier)
+        explored.add(current_state.board.__hash__())
+
+        if is_goal(current_state):
+            return get_path(current_state), current_state.depth
+
+        successor_states = get_successors(current_state)
+        for state in successor_states:
+            state.f = state.depth + state.hfn(state.board)
+            hashed_board = state.board.__hash__()
+            if hashed_board in explored:
+                continue
+
+            if hashed_board in states:
+                if state.f < states[hashed_board].f:
+                    states[hashed_board] = state
+            else:
+                states[hashed_board] = state
+                heappush(frontier, state)
+
+    return [], -1
+
 
 
 def heuristic_basic(board):
@@ -191,6 +223,8 @@ def heuristic_basic(board):
     :return: The heuristic value.
     :rtype: int
     """
+
+    return 0
 
     raise NotImplementedError
 
