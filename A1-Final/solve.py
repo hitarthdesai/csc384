@@ -131,22 +131,29 @@ def dfs(init_board):
     :rtype: List[State], int
     """
     
-    frontier = [init_board]
+    hashed_board = init_board.__hash__()
+    frontier = [hashed_board]
+    explored = set()
+    
     states = {}
-
-    states[init_board.__hash__()] = State(init_board, heuristic_zero, 0, 0, None)
+    states[hashed_board] = State(init_board, heuristic_zero, 0, 0, None)
 
     while frontier:
         current = frontier.pop()
-        current_state = states[current.__hash__()]
+        explored.add(current)
 
+        current_state = states[current]
         if is_goal(current_state):
             return get_path(current_state), current_state.depth
         
         successor_states = get_successors(current_state)
         for state in successor_states:
-            states[state.board.__hash__()] = state
-            frontier.append(state.board)
+            hashed_board = state.board.__hash__()
+            if hashed_board in explored:
+                continue
+
+            states[hashed_board] = state
+            frontier.append(hashed_board)
 
     return [], -1
 
