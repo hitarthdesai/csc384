@@ -224,9 +224,15 @@ def heuristic_basic(board):
     :rtype: int
     """
 
-    return 0
+    heuristic = 0
+    for box in board.boxes:
+        min_distance = math.inf
+        distances = map(lambda storage: abs(box[0] - storage[0]) + abs(box[1] - storage[1]), board.storage)
+        min_distance = min(distances)
+        heuristic += min_distance
 
-    raise NotImplementedError
+    return heuristic
+        
 
 
 def heuristic_advanced(board):
@@ -350,3 +356,22 @@ if __name__ == "__main__":
         print(state.board, file=outputfile)
         counter += 1
     outputfile.close()
+
+# if __name__ == "__main__":
+
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument(
+#         "--inputfile",
+#         type=str,
+#         required=True,
+#         help="The file that contains the puzzle."
+#     )
+#     args = parser.parse_args()
+
+#     # set the heuristic function
+#     # heuristic = heuristic_zero
+#     heuristic = heuristic_basic
+#     # heuristic = heuristic_advanced
+
+#     board = read_from_file(args.inputfile)
+#     path = solve_puzzle(board, "a_star", heuristic)
