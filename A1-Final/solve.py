@@ -232,7 +232,48 @@ def heuristic_basic(board):
         heuristic += min_distance
 
     return heuristic
-        
+
+
+
+def is_trapped_by_obstacle(board, position):
+    return position in board.obstacles
+    # or position in board.boxes
+
+
+
+def is_box_trapped(board: Board, box: tuple) -> bool:
+    """
+    Checks if a box is trapped in a corner or next to a wall such that it can't be moved
+    to any storage location.
+    """
+    x, y = box
+
+    # We ignore a box that is already inside a storage location
+    if box in board.storage:
+        return False
+
+    # Checking for trap in top left corner
+    trapped_in_top_left_corner = is_trapped_by_obstacle(board, (x-1, y)) and is_trapped_by_obstacle(board, (x, y-1))
+    if trapped_in_top_left_corner:
+        return True
+    
+    # Checking for trap in top right corner
+    trapped_in_top_right_corner = is_trapped_by_obstacle(board, (x+1, y)) and is_trapped_by_obstacle(board, (x, y-1))
+    if trapped_in_top_right_corner:
+        return True
+    
+    # Checking for trap in bottom left corner
+    trapped_in_bottom_left_corner = is_trapped_by_obstacle(board, (x-1, y)) and is_trapped_by_obstacle(board, (x, y+1))
+    if trapped_in_bottom_left_corner:
+        return True
+    
+    # Checking for trap in bottom right corner
+    trapped_in_bottom_right_corner = is_trapped_by_obstacle(board, (x+1, y)) and is_trapped_by_obstacle(board, (x, y+1))
+    if trapped_in_bottom_right_corner:
+        return True
+    
+    return False
+
 
 
 def heuristic_advanced(board):
@@ -245,7 +286,24 @@ def heuristic_advanced(board):
     :rtype: int
     """
 
-    raise NotImplementedError
+    total_heuristic = 0
+
+    for box in board.boxes:
+        if is_box_trapped(board, box):
+            # If one of the boxes is trapped, return infinity
+            # Since the box can't be moved to any storage location
+            # And the game is unsolvable
+            return math.inf
+        else:
+            # Manhattan distance to closest storage
+            min_distance = math.inf
+            for storage in board.storage:
+                distance = abs(box[0] - storage[0]) + abs(box[1] - storage[1])
+                min_distance = min(min_distance, distance)
+
+            total_heuristic += min_distance
+
+    return total_heuristic
 
 
 def solve_puzzle(board: Board, algorithm: str, hfn):
@@ -303,60 +361,6 @@ def solve_puzzle(board: Board, algorithm: str, hfn):
         return path
 
 
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--inputfile",
-        type=str,
-        required=True,
-        help="The file that contains the puzzle."
-    )
-    parser.add_argument(
-        "--outputfile",
-        type=str,
-        required=True,
-        help="The file that contains the solution to the puzzle."
-    )
-    parser.add_argument(
-        "--algorithm",
-        type=str,
-        required=True,
-        choices=['a_star', 'dfs'],
-        help="The searching algorithm."
-    )
-    parser.add_argument(
-        "--heuristic",
-        type=str,
-        required=False,
-        default=None,
-        choices=['zero', 'basic', 'advanced'],
-        help="The heuristic used for any heuristic search."
-    )
-    args = parser.parse_args()
-
-    # set the heuristic function
-    heuristic = heuristic_zero
-    if args.heuristic == 'basic':
-        heuristic = heuristic_basic
-    elif args.heuristic == 'advanced':
-        heuristic = heuristic_advanced
-
-    # read the boards from the file
-    board = read_from_file(args.inputfile)
-
-    # solve the puzzles
-    path = solve_puzzle(board, args.algorithm, heuristic)
-
-    # save solution in output file
-    outputfile = open(args.outputfile, "w")
-    counter = 1
-    for state in path:
-        print(counter, file=outputfile)
-        print(state.board, file=outputfile)
-        counter += 1
-    outputfile.close()
-
 # if __name__ == "__main__":
 
 #     parser = argparse.ArgumentParser()
@@ -366,12 +370,66 @@ if __name__ == "__main__":
 #         required=True,
 #         help="The file that contains the puzzle."
 #     )
+#     parser.add_argument(
+#         "--outputfile",
+#         type=str,
+#         required=True,
+#         help="The file that contains the solution to the puzzle."
+#     )
+#     parser.add_argument(
+#         "--algorithm",
+#         type=str,
+#         required=True,
+#         choices=['a_star', 'dfs'],
+#         help="The searching algorithm."
+#     )
+#     parser.add_argument(
+#         "--heuristic",
+#         type=str,
+#         required=False,
+#         default=None,
+#         choices=['zero', 'basic', 'advanced'],
+#         help="The heuristic used for any heuristic search."
+#     )
 #     args = parser.parse_args()
 
 #     # set the heuristic function
-#     # heuristic = heuristic_zero
-#     heuristic = heuristic_basic
-#     # heuristic = heuristic_advanced
+#     heuristic = heuristic_zero
+#     if args.heuristic == 'basic':
+#         heuristic = heuristic_basic
+#     elif args.heuristic == 'advanced':
+#         heuristic = heuristic_advanced
 
+#     # read the boards from the file
 #     board = read_from_file(args.inputfile)
-#     path = solve_puzzle(board, "a_star", heuristic)
+
+#     # solve the puzzles
+#     path = solve_puzzle(board, args.algorithm, heuristic)
+
+#     # save solution in output file
+#     outputfile = open(args.outputfile, "w")
+#     counter = 1
+#     for state in path:
+#         print(counter, file=outputfile)
+#         print(state.board, file=outputfile)
+#         counter += 1
+#     outputfile.close()
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--inputfile",
+        type=str,
+        required=True,
+        help="The file that contains the puzzle."
+    )
+    args = parser.parse_args()
+
+    # set the heuristic function
+    # heuristic = heuristic_zero
+    # heuristic = heuristic_basic
+    heuristic = heuristic_advanced
+
+    board = read_from_file(args.inputfile)
+    path = solve_puzzle(board, "a_star", heuristic)
