@@ -361,60 +361,6 @@ def solve_puzzle(board: Board, algorithm: str, hfn):
         return path
 
 
-# if __name__ == "__main__":
-
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument(
-#         "--inputfile",
-#         type=str,
-#         required=True,
-#         help="The file that contains the puzzle."
-#     )
-#     parser.add_argument(
-#         "--outputfile",
-#         type=str,
-#         required=True,
-#         help="The file that contains the solution to the puzzle."
-#     )
-#     parser.add_argument(
-#         "--algorithm",
-#         type=str,
-#         required=True,
-#         choices=['a_star', 'dfs'],
-#         help="The searching algorithm."
-#     )
-#     parser.add_argument(
-#         "--heuristic",
-#         type=str,
-#         required=False,
-#         default=None,
-#         choices=['zero', 'basic', 'advanced'],
-#         help="The heuristic used for any heuristic search."
-#     )
-#     args = parser.parse_args()
-
-#     # set the heuristic function
-#     heuristic = heuristic_zero
-#     if args.heuristic == 'basic':
-#         heuristic = heuristic_basic
-#     elif args.heuristic == 'advanced':
-#         heuristic = heuristic_advanced
-
-#     # read the boards from the file
-#     board = read_from_file(args.inputfile)
-
-#     # solve the puzzles
-#     path = solve_puzzle(board, args.algorithm, heuristic)
-
-#     # save solution in output file
-#     outputfile = open(args.outputfile, "w")
-#     counter = 1
-#     for state in path:
-#         print(counter, file=outputfile)
-#         print(state.board, file=outputfile)
-#         counter += 1
-#     outputfile.close()
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -424,12 +370,66 @@ if __name__ == "__main__":
         required=True,
         help="The file that contains the puzzle."
     )
+    parser.add_argument(
+        "--outputfile",
+        type=str,
+        required=True,
+        help="The file that contains the solution to the puzzle."
+    )
+    parser.add_argument(
+        "--algorithm",
+        type=str,
+        required=True,
+        choices=['a_star', 'dfs'],
+        help="The searching algorithm."
+    )
+    parser.add_argument(
+        "--heuristic",
+        type=str,
+        required=False,
+        default=None,
+        choices=['zero', 'basic', 'advanced'],
+        help="The heuristic used for any heuristic search."
+    )
     args = parser.parse_args()
 
     # set the heuristic function
-    # heuristic = heuristic_zero
-    # heuristic = heuristic_basic
-    heuristic = heuristic_advanced
+    heuristic = heuristic_zero
+    if args.heuristic == 'basic':
+        heuristic = heuristic_basic
+    elif args.heuristic == 'advanced':
+        heuristic = heuristic_advanced
 
+    # read the boards from the file
     board = read_from_file(args.inputfile)
-    path = solve_puzzle(board, "a_star", heuristic)
+
+    # solve the puzzles
+    path = solve_puzzle(board, args.algorithm, heuristic)
+
+    # save solution in output file
+    outputfile = open(args.outputfile, "w")
+    counter = 1
+    for state in path:
+        print(counter, file=outputfile)
+        print(state.board, file=outputfile)
+        counter += 1
+    outputfile.close()
+
+# if __name__ == "__main__":
+
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument(
+#         "--inputfile",
+#         type=str,
+#         required=True,
+#         help="The file that contains the puzzle."
+#     )
+#     args = parser.parse_args()
+
+#     # set the heuristic function
+#     # heuristic = heuristic_zero
+#     heuristic = heuristic_basic
+#     # heuristic = heuristic_advanced
+
+#     board = read_from_file(args.inputfile)
+#     path = solve_puzzle(board, "a_star", heuristic)
