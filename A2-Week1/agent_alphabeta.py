@@ -30,7 +30,7 @@ def alphabeta_max_basic(board, curr_player, alpha, beta, heuristic_func):
     best_value, best_move = float('-inf'), None
     for move in moves:
         new_board = play_move(board, curr_player, move)
-        _, value = alphabeta_min_basic(new_board, get_opponent(curr_player), heuristic_func)
+        _, value = alphabeta_min_basic(new_board, get_opponent(curr_player), alpha, beta, heuristic_func)
         if value > best_value:
             best_value = value
             best_move = move
@@ -66,7 +66,7 @@ def alphabeta_min_basic(board, curr_player, alpha, beta, heuristic_func):
     best_value, best_move = float('inf'), None
     for move in moves:
         new_board = play_move(board, curr_player, move)
-        _, value = alphabeta_max_basic(new_board, get_opponent(curr_player), heuristic_func)
+        _, value = alphabeta_max_basic(new_board, get_opponent(curr_player), alpha, beta, heuristic_func)
         if value < best_value:
             best_value = value
             best_move = move
