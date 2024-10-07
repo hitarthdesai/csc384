@@ -45,7 +45,7 @@ def heuristic_basic(board, player):
     :return: an estimated utility of the current board for the current player.
     """
 
-    return board.pockets[player] - board.pockets[get_opponent(player)]
+    return board.mancalas[player] - board.mancalas[get_opponent(player)]
 
 
 def heuristic_advanced(board, player): 
