@@ -28,8 +28,7 @@ def minimax_max_basic(board, curr_player, heuristic_func):
 
     best_value, best_move = float('-inf'), None
     for move in moves:
-        new_board = Board(board.pockets.copy(), board.mancalas.copy())
-        play_move(new_board, curr_player, move)
+        new_board = play_move(board, curr_player, move)
         _, value = minimax_min_basic(new_board, get_opponent(curr_player), heuristic_func)
         if value > best_value:
             best_value = value
@@ -54,12 +53,11 @@ def minimax_min_basic(board, curr_player, heuristic_func):
 
     moves = board.get_possible_moves(curr_player)
     if len(moves) == 0:
-        return None, heuristic_func(board, curr_player)
+        return None, heuristic_func(board, get_opponent(curr_player))
     
     best_value, best_move = float('inf'), None
     for move in moves:
-        new_board = Board(board.pockets.copy(), board.mancalas.copy())
-        play_move(new_board, curr_player, move)
+        new_board = play_move(board, curr_player, move)
         _, value = minimax_max_basic(new_board, get_opponent(curr_player), heuristic_func)
         if value < best_value:
             best_value = value
