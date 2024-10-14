@@ -3,11 +3,7 @@
 # Author: Shirley Wang
 # 
 # CSC 384 Assignment 2
-# version 1.1
-#
-# Changes:
-#    -- Updated ai_move section to parse move and value separately. 
-#       Also updated print statements
+# version 2.0
 ###############################################################################
 
 import argparse
@@ -15,92 +11,84 @@ import sys
 import random
 from datetime import datetime
 
-from mancala_game import MancalaGameManager, AiPlayerInterface, Player
+from agent_alphabeta import run_alphabeta
+from agent_minimax import run_minimax
+from agent_random import run_random
+from mancala_game import *
 from utils import *
 
 class MancalaCommandLine(object):
 
-    def __init__(self, game_manager, player1, player2):
-
-        self.game = game_manager
+    def __init__(self, dimension, initial_board, player1, player2):
+        self.board = create_initial_board(dimension, initial_board)
         self.players = [player1, player2]
-        self.height = 2  #2 sides to the board
-        self.width = self.game.dimension #pit count
-        
-        self.offset = 3
-        self.cell_size = 100
-        self.stone_size = 10
+        self.curr_player = TOP
 
     def user_input_move(self):
-        player = "Bottom Player" if self.game.current_player == BOTTOM else "Top Player"
-        prompt = "\n" + player + " Please Input Move: "
+        player = "Bottom Player" if self.curr_player == BOTTOM else "Top Player"
+        prompt = "" + player + " Please Input Move: "
         text = input(prompt).strip()
 
         if text[0] == "T" or text[0] == "B":
             # in case students also input the row in the move
             text = text[1:]
 
-        if text == "S":
-            # TA hack for easily generating board states
-            print("Saved current board state to curr_board.txt")
-            self.save_board("curr_board.txt")
-            raise InvalidMoveError
-
         try:
             move_num = int(text)
         except:
             raise InvalidMoveError
         
-        if self.game.current_player == TOP:
+        if self.curr_player == TOP:
             move_num = move_num - 1
         else:
-            move_num = self.game.dimension - move_num
+            move_num = self.board.dimension - move_num
 
-        if move_num not in self.game.get_possible_moves():
+        if move_num not in self.board.get_possible_moves(self.curr_player):
             raise InvalidMoveError
 
-        self.game.play(move_num)
-        return
+        self.board = play_move(self.board, self.curr_player, move_num)
+        self.curr_player = get_opponent(self.curr_player)
     
     def ai_move(self):
-        player_obj = self.players[self.game.current_player]
-        move, value = player_obj.get_move(self.game)
+        player_obj = self.players[self.curr_player]
+        move, value = player_obj.get_move(self.board, self.curr_player)
+        player = "Bottom Player" if self.curr_player == BOTTOM else "Top Player"
 
-        player = "Bottom Player" if self.game.current_player == BOTTOM else "Top Player"
-        # player_name = "{} \"{}\"".format(player, player_obj.name)
-
-        if move != "None\n": 
+        if move is not None: 
             move_view = int(move)
-            if self.game.current_player == BOTTOM:
-                move_view = self.game.board.dimension - move_view
+            if self.curr_player == BOTTOM:
+                move_view = self.board.dimension - move_view
             else:
                 move_view = move_view + 1
 
-            print("\"{}\": {}{}".format(player_obj.name, player[0], move_view))
+            # print("{}: {} ({})".format(player, move_view, move))
+            print("{} Move: {}".format(player, move_view))
             print("")
-            self.game.play(move)
+            self.board = play_move(self.board, self.curr_player, move)
+            self.curr_player = get_opponent(self.curr_player)
         else:
-            print("Uh this shouldn't happen?")
+            print("Returned None for move, this shouldn't be possible")
             raise InvalidMoveError
-        return
 
     def run(self):
-        self.game.draw_board()
+        self.board.draw_board()
 
         # while game is not over
-        while len(self.game.get_possible_moves(opponent=True)) > 0 and len(self.game.get_possible_moves()) > 0:
+        possible_moves = self.board.get_possible_moves(self.curr_player)
+        other_moves = self.board.get_possible_moves(get_opponent(self.curr_player))
+        while len(possible_moves) > 0 and len(other_moves) > 0:
             # run game
-            player = "Bottom Player" if self.game.current_player == BOTTOM else "Top Player"
+            player = "Bottom Player" if self.curr_player == BOTTOM else "Top Player"
             print("")
             print("Turn:", player)
 
             success = True
-            if isinstance(self.players[self.game.current_player], AiPlayerInterface):
+            if isinstance(self.players[self.curr_player], AiPlayerInterface):
                 # call AI to make a move, if timeout then end game
                 try:
                     self.ai_move()
                 except AiTimeoutError:
-                    print("{} lost due to timeout".format(self.players[self.game.current_player].name))
+                    print("{} lost due to timeout".format(self.players[self.curr_player].name))
                     success = False
                     break
             else:
@@ -112,27 +100,21 @@ class MancalaCommandLine(object):
                     success = False
 
             if success:
-                self.game.draw_board()
+                print("")
+                self.board.draw_board()
 
-        print("Ending Game")
-        self.game.end_game()
-        self.game.draw_board()
+            possible_moves = self.board.get_possible_moves(self.curr_player)
+            other_moves = self.board.get_possible_moves(get_opponent(self.curr_player))
 
-        if isinstance(self.players[TOP], AiPlayerInterface): 
-            self.players[TOP].kill(self.game)
-        if isinstance(self.players[BOTTOM], AiPlayerInterface): 
-            self.players[BOTTOM].kill(self.game)
-
-        winner = "Bottom Player" if self.game.get_winner() == BOTTOM else "Top Player"   
+        winner = get_winner(self.board)
         print("GAME OVER: winner is {}".format(winner))
-        return
     
     def save_board(self, filename):
         data = [
-            ", ".join([str(x) for x in self.game.board.pockets[0]]) + "\n",
-            ", ".join([str(x) for x in self.game.board.pockets[1]]) + "\n",
-            str(self.game.board.mancalas[0]) + "\n",
-            str(self.game.board.mancalas[1]) + "\n"
+            ", ".join([str(x) for x in self.board.pockets[0]]) + "\n",
+            ", ".join([str(x) for x in self.board.pockets[1]]) + "\n",
+            str(self.board.mancalas[0]) + "\n",
+            str(self.board.mancalas[1]) + "\n"
         ]
 
         with open(filename, "w") as f:
@@ -141,62 +123,72 @@ class MancalaCommandLine(object):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        prog="MancalaGUI",
-        description="Run this code to start a game of Mancala"
+        prog="MancalaCmdline",
+        description="Run this code to start a game of mancala"
     )
 
-    parser.add_argument("-d", "--dimension", type=int,
-                        help="Dimension of mancala board.")
-    parser.add_argument("-i", "--initialBoard", 
-                        help="File storing the initial state of the board. Overwrites dimension.")
-
-    parser.add_argument("-t", "--agentTop", 
-                        help="Agent for the top player, by filename (including extension). If not specified, user inputs moves.")
-    parser.add_argument("-b", "--agentBottom", 
-                        help="Agent for the bottom player, by filename (including extension). If not specified, user inputs moves.")
-
-    parser.add_argument("-ht", "--heuristicTop", type=int, default=0,
-                        help="Heuristic for top player to use. 0 = heuristic_basic, 1 = heuristic_advanced")
-    parser.add_argument("-hb", "--heuristicBottom", type=int, default=0,
-                        help="Heuristic for bottom player to use. 0 = heuristic_basic, 1 = heuristic_advanced")
+    parser.add_argument("-d", "--dimension", type=int, default=4,
+                        help="Dimension of mancala board. Default is 4.")
+    parser.add_argument("-t", "--agentTop", type=str,
+                        help="Algorithm for the top player. Options are [random, minimax, alphabeta]. If not specified, user inputs moves.")
+    parser.add_argument("-b", "--agentBottom", type=str,
+                        help="Algorithm for the bottom player. Options are [random, minimax, alphabeta]. If not specified, user inputs moves.")
+    parser.add_argument("-ht", "--heuristicTop", type=str, default="basic",
+                        help="Heuristic for top player to use. Options are [basic, advanced]. Default is basic.")
+    parser.add_argument("-hb", "--heuristicBottom", type=str, default="basic",
+                        help="Heuristic for bottom player to use. Options are [basic, advanced]. Default is basic.")
 
     parser.add_argument("-l", "--limit", type=int, default=-1,
-                        help="(Optional) Depth limit for agent to use.")
-    
-    parser.add_argument("-o", "--optimizations", action="store_true",
-                        help="Use flag if agent should use additional optimizations, possibly including caching.")
+                        help="(Optional) Depth limit for agent to use. Default is -1, which means no depth limit.")
 
+    parser.add_argument("-i", "--initialBoard", type=str,
+                        help="File storing the initial state of the board. Overwrites dimension.")
+
+    parser.add_argument("-o", "--optimizations", action="store_true",
+                        help="Use flag if agent should use additional optimizations.")
 
     args = parser.parse_args()    
     return args
+
+def get_algorithm(algorithm):
+    if algorithm == "minimax":
+        return run_minimax
+    elif algorithm == "alphabeta":
+        return run_alphabeta
+    elif algorithm == "random":
+        return run_random
+    else:
+        raise TypeError("Algorithm not recognized. Options are [random, minimax, alphabeta].")
+    
+def get_heuristic(heuristic):
+    if heuristic == "basic":
+        return heuristic_basic
+    elif heuristic == "advanced":
+        return heuristic_advanced
+    else:
+        raise TypeError("Heuristic not recognized. Options are [basic, advanced].")
 
 def main():
     random.seed(datetime.now().timestamp())
     args = parse_args()
 
     if args.dimension is not None and args.dimension <= 0 and args.initialBoard is None: #if no dimension provided
-        print('Please provide a valid board size (at least 1).')
+        print('Please provide a valid dimension or a valid initial board.')
         sys.exit(2)
     
-    assert args.heuristicTop in [0, 1]
-    assert args.heuristicBottom in [0, 1]
-
-    print("\nInitializing the Top Player")
     if args.agentTop != None:
-        p1 = AiPlayerInterface(args.agentTop, TOP, args.limit, 1 if args.optimizations else 0, args.heuristicTop)
+        p1 = AiPlayerInterface(TOP, get_algorithm(args.agentTop), args.limit, args.optimizations, get_heuristic(args.heuristicTop))
     else:
         p1 = Player(TOP)
 
-    print("\nInitializing the Bottom Player")
     if args.agentBottom != None:
-        p2 = AiPlayerInterface(args.agentBottom, BOTTOM, args.limit, 1 if args.optimizations else 0, args.heuristicBottom)
+        p2 = AiPlayerInterface(BOTTOM, get_algorithm(args.agentBottom), args.limit, args.optimizations, get_heuristic(args.heuristicBottom))
     else:
         p2 = Player(BOTTOM)
-    print("")
         
-    game = MancalaGameManager(args.dimension, args.initialBoard)
-    gui = MancalaCommandLine(game, p1, p2) 
-    gui.run()
+    cmdline = MancalaCommandLine(args.dimension, args.initialBoard, p1, p2) 
+    cmdline.run()
+
 
 if __name__ == "__main__":
     main()

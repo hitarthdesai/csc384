@@ -3,17 +3,13 @@
 # Thanks to Daniel Bauer, Columbia University, for a version of Othello that this was based on
 # 
 # CSC 384 Assignment 2
-# version 1.1
-#   - Updated AiPlayerInterface.get_move to parse move,value 
-#     as a tuple.
+# version 2.0
 ##########################################################
-
-import sys
-import subprocess
-from threading import Timer
 
 from utils import *
 
+
+# Reading initial board from file
 def read_initial_board(init_board):
     if isinstance(init_board, list):
         return read_initial_board_list(init_board)
@@ -21,7 +17,8 @@ def read_initial_board(init_board):
         return read_initial_board_file(init_board)
     else:
         raise TypeError("init_board should be either a string filename or a list for the board")
-    
+
+
 def read_initial_board_list(init_board):
     """
     Creates a new board from the given list. The list should be 3 elements where
@@ -31,6 +28,7 @@ def read_initial_board_list(init_board):
     Element 3: List representing Mancalas [TOP, BOTTOM]
     """
     return len(init_board[0]), Board([init_board[0], init_board[1]], init_board[2])
+
 
 def read_initial_board_file(filename):
     """
@@ -59,7 +57,21 @@ def read_initial_board_file(filename):
     return dimension, Board(pockets, mancalas)
 
 
+def create_initial_board(dimension=None, initial_board=None):
+    assert dimension is not None or initial_board is not None
+    if initial_board is not None:
+        # if dimension is not None:
+        #     print("Initializing game from", initial_board, ", dimension parameter ignored.")
+        dimension, board = read_initial_board(initial_board)
+    elif dimension is not None:
+        board = Board([[4] * dimension, [4] * dimension], [0, 0])
+    return board
+
+
 class Board(object):
+    """
+    Board class that represents a Mancala board
+    """
 
     def __init__(self, pockets, mancalas):
         """
@@ -154,88 +166,16 @@ class Board(object):
         return moves
    
 
-class MancalaGameManager(object):
-
-    def __init__(self, dimension=None, initial_board=None, current_player=TOP):
-        """
-        Create an object to manage the Mancala game.
-        Keeps track of the current board and the current player.
-        """
-        assert dimension is not None or initial_board is not None
-        if initial_board is not None:
-            if dimension is not None:
-                print("Initializing game from", initial_board, ", dimension parameter ignored.")
-            self.dimension, self.board = read_initial_board(initial_board)
-        elif dimension is not None:
-            self.dimension = dimension
-            self.board = Board([[4] * self.dimension, [4] * self.dimension], [0, 0])
-        
-        self.current_player = current_player
-
-    def get_score(self):
-        return self.board.mancalas[TOP], self.board.mancalas[BOTTOM]
-
-    def get_possible_moves(self, opponent=False):
-        """
-        Return a list of all possible indices (representing pockets) that the 
-        current player can play on the current board.
-
-        if opponent = True, get possible moves for the opponent of the 
-        current player instead. 
-        """
-        player = self.current_player
-        if opponent:
-            player = get_opponent(self.current_player)
-
-        return self.board.get_possible_moves(player)
-    
-    def end_game(self):
-        """
-        Call this function at the end of the game to move all remaining stones
-        on the board.
-        Opponent just moved and should have no moves left, only current player
-        has stones to move.
-        """
-        new_board = []
-        new_mancalas = self.board.mancalas.copy()
-        for row in self.board.pockets: 
-            new_board.append(list(row[:]))
-
-        for player in range(len(self.board.pockets)):
-            value = 0
-            for j in range(len(new_board[player])):
-                value +=  new_board[player][j]
-                new_board[player][j] = 0
-            new_mancalas[player] += value
-
-        final = []
-        for row in new_board: 
-            final.append(tuple(row))
-
-        self.board.pockets = tuple(final)
-        self.board.mancalas = tuple(new_mancalas)
-
-    def play(self, move):
-        """
-        Play the move.
-        :param move: index of the pocket.
-        """
-        move = int(move)
-
-        if self.board.pockets[self.current_player][move] == 0:
-            raise InvalidMoveError("Invalid move: The pocket is empty.")
-     
-        self.board = play_move(self.board, self.current_player, move)
-        self.current_player = get_opponent(self.current_player)
-
-    def draw_board(self):
-        self.board.draw_board()
-
-    def get_winner(self):
-        """
-        Returns the player number of the player with more stones in their mancala.
-        """
-        return TOP if self.board.mancalas[TOP] > self.board.mancalas[BOTTOM] else BOTTOM
+def get_winner(board):
+    """
+    Returns the player number of the player with more stones in their mancala.
+    """
+    if board.mancalas[TOP] > board.mancalas[BOTTOM]:
+        return "Top Player"
+    elif board.mancalas[TOP] < board.mancalas[BOTTOM]:
+        return "Bottom Player"
+    else:
+        return "Tie"
 
 
 def play_move(board, player, move):
@@ -301,16 +241,51 @@ def play_move(board, player, move):
         else: 
             ind -= 1
 
-    #return a copy of the board details
+    # make rows tuples
     final_pockets = []
     for row in new_board: 
         final_pockets.append(tuple(row))
+    final_board = Board(final_pockets, new_mancalas)
 
-    return Board(final_pockets, new_mancalas)
+    # end the game if done
+    if sum(new_board[TOP]) == 0 or sum(new_board[BOTTOM]) == 0:
+        final_board = end_game(final_board)
+
+    return final_board
 
 
+def end_game(board):
+    """
+    Call this function at the end of the game to move all remaining stones
+    on the board.
+    Opponent just moved and should have no moves left, only current player
+    has stones to move.
+    Modifies the input board.
+    """
+    new_board = []
+    new_mancalas = board.mancalas.copy()
+    for row in board.pockets: 
+        new_board.append(list(row[:]))
+
+    for player in range(len(board.pockets)):
+        value = 0
+        for j in range(len(new_board[player])):
+            value +=  new_board[player][j]
+            new_board[player][j] = 0
+        new_mancalas[player] += value
+
+    final = []
+    for row in new_board: 
+        final.append(tuple(row))
+
+    board.pockets = tuple(final)
+    board.mancalas = tuple(new_mancalas)
+    return board
+
+
+# Player Classes
 class Player(object):
-    def __init__(self, player_num, name="Human"):
+    def __init__(self, player, name="Human"):
         """
         Initialize a player of the game.
 
@@ -318,60 +293,34 @@ class Player(object):
         name: a cool name for this player (give a string) 
         """
         self.name = name
-        self.player = player_num
+        self.player = player
 
-    def get_move(self, manager):
-        pass  
+    def get_move(self, board, player):
+        pass
 
 
 class AiPlayerInterface(Player):
+    def __init__(self, player, algorithm, limit, optimizations, heuristic):
+        """
+        Initializes an AI player that uses minimax or alphabeta.
 
-    TIMEOUT = 120 # For me to test on bigger boards
+        player    str: for notation 
+        algorithm str: [random, minimax, alphabeta]
+        limit     int: >0 -> using depth limit
+        optimizations  bool: whether to use additional optimizations
+        heuristic str: [basic, advanced] 
+        """
+        super().__init__(player, algorithm.__name__)
+        self.algorithm = algorithm
+        self.hfunc = heuristic
 
-    def __init__(self, filename, player, limit, caching=False, heuristic=0):
-
-        self.player = player
-        # NOTE: if an error occurs here, changing 'python' to 'python3' may fix it, and vice versa.
-        self.process = subprocess.Popen(['python', filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        name = self.process.stdout.readline().decode("ASCII").strip()
-        print("AI introduced itself as: {}".format(name))
-        self.name = name
-        self.process.stdin.write((str(player) + "," + str(limit) + "," + str(caching) + "," + str(heuristic) + "\n").encode("ASCII"))
-        self.process.stdin.flush()
-
-    def timeout(self): 
-        sys.stderr.write("{} timed out.".format(self.name))
-        self.process.kill() 
-        self.timed_out = True
-
-    def get_move(self, manager):
-        white_score, dark_score = manager.board.mancalas[TOP], manager.board.mancalas[BOTTOM]
-        self.process.stdin.write("SCORE {} {}\n".format(white_score, dark_score).encode("ASCII"))
-        self.process.stdin.flush()
-        self.process.stdin.write("{}\n".format(str(manager.board.pockets)).encode("ASCII"))
-        self.process.stdin.flush()
-        self.process.stdin.write("{}\n".format(str(manager.board.mancalas)).encode("ASCII"))
-        self.process.stdin.flush()
-
-        timer = Timer(AiPlayerInterface.TIMEOUT, lambda: self.timeout())
-        self.timed_out = False
-        timer.start()
-
-        # Wait for the AI call
-        move_s = self.process.stdout.readline().decode("ASCII")
-        if self.timed_out:  
-            raise AiTimeoutError
-        timer.cancel()
-
-        parts = move_s.split(",")
-        move = parts[0]
-        if len(parts) > 1:
-            value = parts[1]
+        self.limit = limit
+        if optimizations:
+            self.optimizations = {}
+            self.optimizations["cache"] = {}
         else:
-            value = "None"
+            self.optimizations = None
+        
+    def get_move(self, board, player):
+        move, value = self.algorithm(board, player, self.limit, self.optimizations, self.hfunc)
         return move, value
-    
-    def kill(self, manager):
-        white_score, dark_score = manager.get_score()
-        self.process.stdin.write("FINAL {} {}\n".format(white_score, dark_score).encode("ASCII"))
-        self.process.kill() 
