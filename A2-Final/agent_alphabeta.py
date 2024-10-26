@@ -190,7 +190,7 @@ def alphabeta_max_limit_opt(board, curr_player, alpha, beta, heuristic_func, dep
     cache_key = hash(board)
     try:
         cached_depth, cached_result = cache[cache_key]
-        if cached_depth >= depth_limit:
+        if depth_limit <= cached_depth:
             return cached_result
     except KeyError:
         pass
@@ -250,7 +250,7 @@ def alphabeta_min_limit_opt(board, curr_player, alpha, beta, heuristic_func, dep
     cache_key = hash(board)
     try:
         cached_depth, cached_result = cache[cache_key]
-        if cached_depth >= depth_limit:
+        if depth_limit <= cached_depth:
             return cached_result
     except KeyError:
         pass

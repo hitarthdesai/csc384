@@ -147,7 +147,7 @@ def minimax_max_limit_opt(board, curr_player, heuristic_func, depth_limit, optim
     cache_key = hash(board)
     try:
         cached_depth, cached_result = cache[cache_key]
-        if cached_depth >= depth_limit:
+        if depth_limit <= cached_depth:
             return cached_result
     except KeyError:
         pass
@@ -198,7 +198,7 @@ def minimax_min_limit_opt(board, curr_player, heuristic_func, depth_limit, optim
     cache_key = hash(board)
     try:
         cached_depth, cached_result = cache[cache_key]
-        if cached_depth >= depth_limit:
+        if depth_limit <= cached_depth:
             return cached_result
     except KeyError:
         pass
