@@ -143,12 +143,27 @@ def minimax_max_limit_opt(board, curr_player, heuristic_func, depth_limit, optim
     :return the best move and its minimmax value estimated by our heuristic function.
     """
 
+    cache = optimizations['cache']
+    cache_key = hash(board)
+    try:
+        cached_depth, cached_result = cache[cache_key]
+        if cached_depth >= depth_limit:
+            return cached_result
+    except KeyError:
+        pass
+    
+
     if depth_limit == 0:
-        return None, heuristic_func(board, curr_player)
+        result = None, heuristic_func(board, curr_player)
+        cache[cache_key] = depth_limit, result
+        return result
+
 
     moves = board.get_possible_moves(curr_player)
     if len(moves) == 0:
-        return None, heuristic_func(board, curr_player)
+        result = None, heuristic_func(board, curr_player)
+        cache[cache_key] = depth_limit, result
+        return result
 
     best_value, best_move = float('-inf'), None
     depth_limit -= 1
@@ -160,7 +175,9 @@ def minimax_max_limit_opt(board, curr_player, heuristic_func, depth_limit, optim
             best_value = value
             best_move = move
 
-    return best_move, best_value
+    result = best_move, best_value
+    cache[cache_key] = depth_limit, result
+    return result
 
 def minimax_min_limit_opt(board, curr_player, heuristic_func, depth_limit, optimizations):
     """
@@ -177,12 +194,25 @@ def minimax_min_limit_opt(board, curr_player, heuristic_func, depth_limit, optim
     :return the best move and its minimmax value estimated by our heuristic function.
     """
 
+    cache = optimizations['cache']
+    cache_key = hash(board)
+    try:
+        cached_depth, cached_result = cache[cache_key]
+        if cached_depth >= depth_limit:
+            return cached_result
+    except KeyError:
+        pass
+
     if depth_limit == 0:
-        return None, heuristic_func(board, get_opponent(curr_player))
+        result = None, heuristic_func(board, get_opponent(curr_player))
+        cache[cache_key] = depth_limit, result
+        return result
 
     moves = board.get_possible_moves(curr_player)
     if len(moves) == 0:
-        return None, heuristic_func(board, get_opponent(curr_player))
+        result = None, heuristic_func(board, get_opponent(curr_player))
+        cache[cache_key] = depth_limit, result
+        return result
     
     best_value, best_move = float('inf'), None
     depth_limit -= 1
@@ -194,7 +224,9 @@ def minimax_min_limit_opt(board, curr_player, heuristic_func, depth_limit, optim
             best_value = value
             best_move = move
 
-    return best_move, best_value
+    result = best_move, best_value
+    cache[cache_key] = depth_limit, result
+    return result
 
 
 ###############################################################################
