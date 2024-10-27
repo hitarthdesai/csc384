@@ -164,10 +164,15 @@ def minimax_max_limit_opt(board, curr_player, heuristic_func, depth_limit, optim
 
     for move in moves:
         new_board = play_move(board, curr_player, move)
-        _, value = minimax_min_limit_opt(new_board, get_opponent(curr_player), heuristic_func, depth_limit, optimizations)
+        result = minimax_min_limit_opt(new_board, get_opponent(curr_player), heuristic_func, depth_limit, optimizations)
+        _move, value = result
         if value > best_value:
             best_value = value
             best_move = move
+        
+        if _move is not None:
+            ck = hash(new_board)
+            cache[ck] = depth_limit, result
 
     result = best_move, best_value
     cache[cache_key] = depth_limit + 1, result
@@ -209,10 +214,15 @@ def minimax_min_limit_opt(board, curr_player, heuristic_func, depth_limit, optim
 
     for move in moves:
         new_board = play_move(board, curr_player, move)
-        _, value = minimax_max_limit_opt(new_board, get_opponent(curr_player), heuristic_func, depth_limit, optimizations)
+        result = minimax_max_limit_opt(new_board, get_opponent(curr_player), heuristic_func, depth_limit, optimizations)
+        _move, value = result
         if value < best_value:
             best_value = value
             best_move = move
+            
+        if _move is not None:
+            ck = hash(new_board)
+            cache[ck] = depth_limit, result
 
     result = best_move, best_value
     cache[cache_key] = depth_limit + 1, result
