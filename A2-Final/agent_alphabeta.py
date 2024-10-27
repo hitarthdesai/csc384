@@ -190,40 +190,40 @@ def alphabeta_max_limit_opt(board, curr_player, alpha, beta, heuristic_func, dep
     cache_key = hash(board)
     try:
         cached_depth, cached_result = cache[cache_key]
-        if depth_limit <= cached_depth:
+        if cached_depth <= depth_limit:
             return cached_result
     except KeyError:
         pass
 
     if depth_limit == 0:
-        result = None, heuristic_func(board, curr_player)
-        cache[cache_key] = depth_limit, result
-        return result
+        return None, heuristic_func(board, curr_player)
 
     moves = board.get_possible_moves(curr_player)
     if len(moves) == 0:
-        result = None, heuristic_func(board, curr_player)
-        cache[cache_key] = depth_limit, result
-        return result
+        return None, heuristic_func(board, curr_player)
 
     best_value, best_move = float('-inf'), None
     depth_limit -= 1
 
     for move in moves:
         new_board = play_move(board, curr_player, move)
-        _, value = alphabeta_min_limit_opt(new_board, get_opponent(curr_player), alpha, beta, heuristic_func, depth_limit, optimizations)
+        result = alphabeta_min_limit_opt(new_board, get_opponent(curr_player), alpha, beta, heuristic_func, depth_limit, optimizations)
+        _move, value = result
         if value > best_value:
             best_value = value
             best_move = move
 
             if value > alpha:
                 alpha = value
-
             if alpha >= beta:
                 break
 
+        if _move is not None:
+            ck = hash(new_board)
+            cache[ck] = depth_limit, result
+
     result = best_move, best_value
-    cache[cache_key] = depth_limit, result
+    cache[cache_key] = depth_limit + 1, result
     return result
 
 def alphabeta_min_limit_opt(board, curr_player, alpha, beta, heuristic_func, depth_limit, optimizations):
@@ -250,40 +250,40 @@ def alphabeta_min_limit_opt(board, curr_player, alpha, beta, heuristic_func, dep
     cache_key = hash(board)
     try:
         cached_depth, cached_result = cache[cache_key]
-        if depth_limit <= cached_depth:
+        if cached_depth <= depth_limit:
             return cached_result
     except KeyError:
         pass
 
     if depth_limit == 0:
-        result = None, heuristic_func(board, get_opponent(curr_player))
-        cache[cache_key] = depth_limit, result
-        return result
+        return None, heuristic_func(board, get_opponent(curr_player))
 
     moves = board.get_possible_moves(curr_player)
     if len(moves) == 0:
-        result = None, heuristic_func(board, get_opponent(curr_player))
-        cache[cache_key] = depth_limit, result
-        return result
+        return None, heuristic_func(board, get_opponent(curr_player))
     
     best_value, best_move = float('inf'), None
     depth_limit -= 1
 
     for move in moves:
         new_board = play_move(board, curr_player, move)
-        _, value = alphabeta_max_limit_opt(new_board, get_opponent(curr_player), alpha, beta, heuristic_func, depth_limit, optimizations)
+        result = alphabeta_max_limit_opt(new_board, get_opponent(curr_player), alpha, beta, heuristic_func, depth_limit, optimizations)
+        _move, value = result
         if value < best_value:
             best_value = value
             best_move = move
 
             if value < beta:
                 beta = value
-
             if alpha >= beta:
                 break
+        
+        if _move is not None:
+            ck = hash(new_board)
+            cache[ck] = depth_limit, result
 
     result = best_move, best_value
-    cache[cache_key] = depth_limit, result
+    cache[cache_key] = depth_limit + 1, result
     return result
 
 ###############################################################################
