@@ -69,11 +69,9 @@ def heuristic_advanced(board, player):
     # prefer placing stones in own mancala
     basic = board.mancalas[player] - board.mancalas[opponent]
 
-    # prefer to have more stones in own pockets
-    own_stones = sum(own_pockets)
-
-    # prefer to have less stones in opponent's pockets
-    opp_stones = sum(opp_pockets)
+    # prefer to have more stones in own
+    # pockets, and less in opponent's pockets
+    stone_diff = sum(own_pockets) - sum(opp_pockets)
 
     # prefer to have more potential captures
     capture_potential = 0
@@ -89,13 +87,12 @@ def heuristic_advanced(board, player):
 
         # if ending pocket is on the player's side, and it's empty, then we're golden
         if end < len(own_pockets) and own_pockets[end] == 0:
-            capture_potential += opp_pockets[end]
+            capture_potential = max(capture_potential, opp_pockets[end])
 
 
     # Weighted sum of all factors
     return (
         3 * basic +
-        2 * own_stones -
-        2 * opp_stones +
+        2 * stone_diff +
         5 * capture_potential
     )
