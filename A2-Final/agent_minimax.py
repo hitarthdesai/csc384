@@ -153,7 +153,7 @@ def minimax_max_limit_opt(board, curr_player, heuristic_func, depth_limit, optim
         value = None
         if ck in cache:
             depth, cached_value = cache[ck]
-            if depth <= depth_limit - 1:
+            if depth >= depth_limit - 1:
                 value = cached_value
         
         if value is None:
@@ -196,7 +196,7 @@ def minimax_min_limit_opt(board, curr_player, heuristic_func, depth_limit, optim
         value = None
         if ck in cache:
             depth, cached_value = cache[ck]
-            if depth <= depth_limit - 1:
+            if depth >= depth_limit - 1:
                 value = cached_value
         
         if value is None:
