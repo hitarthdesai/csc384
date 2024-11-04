@@ -70,7 +70,7 @@ def create_variables(dim, board):
     :rtype: List[Variables]
     """
 
-    variables = [[None for _ in range(dim)] for _ in range(dim)]
+    variables = [None for _ in range(dim*dim)]
     for i in range(dim):
         for j in range(dim):
             name = f"Var({i}, {j})"
@@ -81,7 +81,7 @@ def create_variables(dim, board):
                 domain = list(range(1, dim + 1))
 
             var = Variable(name, domain)
-            variables[i][j] = var
+            variables[i*dim + j] = var
 
     return variables
 
@@ -147,13 +147,13 @@ def create_row_and_col_constraints(dim, sat_tuples, variables):
         for j in range(dim):
             for k in range(j + 1, dim):
                 name = f"Row({i},{j},{k})"
-                scope = [variables[i][j], variables[i][k]]
+                scope = [variables[i*dim+j], variables[i*dim+k]]
                 con = Constraint(name, scope)
                 con.add_satisfying_tuples(sat_tuples)
                 constraints.append(con)
 
                 name = f"Col({j},{i},{k})"
-                scope = [variables[j][i], variables[k][i]]
+                scope = [variables[j*dim+i], variables[k*dim+i]]
                 con = Constraint(name, scope)
                 con.add_satisfying_tuples(sat_tuples)
                 constraints.append(con)
@@ -186,7 +186,7 @@ def create_cage_constraints(dim, sat_tuples, variables):
                     for a in range(x, cage_size):
                         for b in range(y + 1 if a == x else 0, cage_size):
                             name = f"Cage({i+x},{j+y},{i+a},{j+b})"
-                            scope = [variables[i+x][j+y], variables[i+a][j+b]]
+                            scope = [variables[(i+x)*dim+j+y], variables[(i+a)*dim+j+b]]
                             con = Constraint(name, scope)
                             con.add_satisfying_tuples(sat_tuples)
                             constraints.append(con)
@@ -221,7 +221,7 @@ def create_dot_constraints(dim, dots, white_tuples, black_tuples, variables):
     constraints = []
     for dot in dots:
         name = f"Dot({dot.row1},{dot.col1},{dot.row2},{dot.col2})"
-        scope = [variables[dot.row1][dot.col1], variables[dot.row2][dot.col2]]
+        scope = [variables[dot.row1*dim+dot.col1], variables[dot.row2][dot.col2]]
         con = Constraint(name, scope)
         if dot.color == "white":
             con.add_satisfying_tuples(white_tuples)
@@ -276,14 +276,14 @@ def create_no_dot_constraints(dim, dots, no_dot_tuples, variables):
         for j in range(dim):
             if j < dim - 1 and (i, j, i, j+1) not in dot_positions and (i, j+1, i, j) not in dot_positions:
                 name = f"NoDot({i},{j},{i},{j+1})"
-                scope = [variables[i][j], variables[i][j+1]]
+                scope = [variables[i*dim+j], variables[i*dim+j+1]]
                 con = Constraint(name, scope)
                 con.add_satisfying_tuples(no_dot_tuples)
                 constraints.append(con)
 
             if i < dim - 1 and (i, j, i+1, j) not in dot_positions and (i+1, j, i, j) not in dot_positions:
                 name = f"NoDot({i},{j},{i+1},{j})"
-                scope = [variables[i][j], variables[i+1][j]]
+                scope = [variables[i*dim+j], variables[(i+1)*dim+j]]
                 con = Constraint(name, scope)
                 con.add_satisfying_tuples(no_dot_tuples)
                 constraints.append(con)
