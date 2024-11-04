@@ -244,7 +244,7 @@ def satisfying_tuples_no_dots(dim):
     no_dot_tuples = []
     for i in range(1, dim + 1):
         for j in range(1, dim + 1):
-            if abs(i - j) != 1 and i != 2*j and j != 2*i:
+            if i != j and abs(i - j) != 1 and i != 2*j and j != 2*i:
                 no_dot_tuples.append((i, j))
     return no_dot_tuples
 
