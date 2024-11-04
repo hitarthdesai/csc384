@@ -51,7 +51,21 @@ def create_variables(dim, board):
     :rtype: List[Variables]
     """
 
-    raise NotImplementedError
+    variables = [[None for _ in range(dim)] for _ in range(dim)]
+    for i in range(dim):
+        for j in range(dim):
+            name = f"Var({i}, {j})"
+            initial_value = board.cells[i][j]
+            if initial_value != 0:
+                domain = [initial_value]
+            else:
+                domain = list(range(1, dim + 1))
+
+            var = Variable(name, domain)
+            variables[i][j] = var
+
+    return variables
+
 
     
 def satisfying_tuples_difference_constraints(dim):
@@ -65,7 +79,8 @@ def satisfying_tuples_difference_constraints(dim):
     :rtype: List[(int,int)]
     """
 
-    raise NotImplementedError
+    return [(i, j) for i in range(1, dim + 1) for j in range(1, dim + 1) if i != j]
+
 
 
 def satisfying_tuples_white_dots(dim):
@@ -79,7 +94,8 @@ def satisfying_tuples_white_dots(dim):
     :rtype: List[(int,int)]
     """
 
-    raise NotImplementedError
+    return [(i, i+1) for i in range(1, dim)] + [(i+1, i) for i in range(1, dim)]
+
 
 
 def satisfying_tuples_black_dots(dim):
@@ -93,7 +109,7 @@ def satisfying_tuples_black_dots(dim):
     :rtype: List[(int,int)]
     """
 
-    raise NotImplementedError
+    return [(i, 2*i) for i in range(1, (dim//2)+1)] + [(2*i, i) for i in range(1, (dim//2)+1)]
 
 
 def create_row_and_col_constraints(dim, sat_tuples, variables):
@@ -114,8 +130,24 @@ def create_row_and_col_constraints(dim, sat_tuples, variables):
     :rtype: List[Constraint]
     """
    
-    raise NotImplementedError
+    constraints = []
+    for i in range(dim):
+        for j in range(dim):
+            for k in range(j + 1, dim):
+                # Row constraints
+                name = f"Row({i},{j},{k})"
+                scope = [variables[i][j], variables[i][k]]
+                con = Constraint(name, scope)
+                con.add_satisfying_tuples(sat_tuples)
+                constraints.append(con)
 
+                # Column constraints
+                name = f"Col({j},{i},{k})"
+                scope = [variables[j][i], variables[k][i]]
+                con = Constraint(name, scope)
+                con.add_satisfying_tuples(sat_tuples)
+                constraints.append(con)
+    return constraints
 
 def create_cage_constraints(dim, sat_tuples, variables):
     """
