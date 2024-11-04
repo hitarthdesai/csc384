@@ -44,17 +44,17 @@ def kropki_model(board):
     
     white_tuples = satisfying_tuples_white_dots(dim)
     black_tuples = satisfying_tuples_black_dots(dim)
-    dot_constraints = create_dot_constraints(board.dots, white_tuples, black_tuples, variables)
+    dot_constraints = create_dot_constraints(dim, board.dots, white_tuples, black_tuples, variables)
     
     no_dot_tuples = satisfying_tuples_no_dots(dim)
     no_dot_constraints = create_no_dot_constraints(dim, board.dots, no_dot_tuples, variables)
     
-    csp = CSP("Kropki Sudoku")
+    csp = CSP("Kropki Sudoku", variables)
     all_constraints = row_and_col_constraints + cage_constraints + dot_constraints + no_dot_constraints
     for constraint in all_constraints:
         csp.add_constraint(constraint)
     
-    return csp, variables
+    return csp
 
 
 def create_variables(dim, board):
