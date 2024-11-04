@@ -35,7 +35,26 @@ def kropki_model(board):
 
     """
 
-    raise NotImplementedError
+    dim = board.dimension
+    variables = create_variables(dim, board)
+    
+    all_diff_tuples = satisfying_tuples_difference_constraints(dim)
+    row_and_col_constraints = create_row_and_col_constraints(dim, all_diff_tuples, variables)
+    cage_constraints = create_cage_constraints(dim, all_diff_tuples, variables)
+    
+    white_tuples = satisfying_tuples_white_dots(dim)
+    black_tuples = satisfying_tuples_black_dots(dim)
+    dot_constraints = create_dot_constraints(board.dots, white_tuples, black_tuples, variables)
+    
+    no_dot_tuples = satisfying_tuples_no_dots(dim)
+    no_dot_constraints = create_no_dot_constraints(dim, board.dots, no_dot_tuples, variables)
+    
+    csp = CSP("Kropki Sudoku")
+    all_constraints = row_and_col_constraints + cage_constraints + dot_constraints + no_dot_constraints
+    for constraint in all_constraints:
+        csp.add_constraint(constraint)
+    
+    return csp, variables
 
 
 def create_variables(dim, board):
@@ -66,8 +85,6 @@ def create_variables(dim, board):
 
     return variables
 
-
-    
 def satisfying_tuples_difference_constraints(dim):
     """
     Return a list of satifying tuples for binary difference constraints.
@@ -80,8 +97,6 @@ def satisfying_tuples_difference_constraints(dim):
     """
 
     return [(i, j) for i in range(1, dim + 1) for j in range(1, dim + 1) if i != j]
-
-
 
 def satisfying_tuples_white_dots(dim):
     """
@@ -96,8 +111,6 @@ def satisfying_tuples_white_dots(dim):
 
     return [(i, i+1) for i in range(1, dim)] + [(i+1, i) for i in range(1, dim)]
 
-
-
 def satisfying_tuples_black_dots(dim):
     """
     Return a list of satifying tuples for black dot constraints.
@@ -110,7 +123,6 @@ def satisfying_tuples_black_dots(dim):
     """
 
     return [(i, 2*i) for i in range(1, (dim//2)+1)] + [(2*i, i) for i in range(1, (dim//2)+1)]
-
 
 def create_row_and_col_constraints(dim, sat_tuples, variables):
     """
@@ -134,14 +146,12 @@ def create_row_and_col_constraints(dim, sat_tuples, variables):
     for i in range(dim):
         for j in range(dim):
             for k in range(j + 1, dim):
-                # Row constraints
                 name = f"Row({i},{j},{k})"
                 scope = [variables[i][j], variables[i][k]]
                 con = Constraint(name, scope)
                 con.add_satisfying_tuples(sat_tuples)
                 constraints.append(con)
 
-                # Column constraints
                 name = f"Col({j},{i},{k})"
                 scope = [variables[j][i], variables[k][i]]
                 con = Constraint(name, scope)
@@ -167,7 +177,21 @@ def create_cage_constraints(dim, sat_tuples, variables):
     :rtype: List[Constraint]
     """
 
-    raise NotImplementedError
+    constraints = []
+    cage_size = 3 if dim == 9 else 2
+    for i in range(0, dim, cage_size):
+        for j in range(0, dim, cage_size):
+            for x in range(cage_size):
+                for y in range(cage_size):
+                    for a in range(x, cage_size):
+                        for b in range(y + 1 if a == x else 0, cage_size):
+                            name = f"Cage({i+x},{j+y},{i+a},{j+b})"
+                            scope = [variables[i+x][j+y], variables[i+a][j+b]]
+                            con = Constraint(name, scope)
+                            con.add_satisfying_tuples(sat_tuples)
+                            constraints.append(con)
+    
+    return constraints
     
 def create_dot_constraints(dim, dots, white_tuples, black_tuples, variables):
     """
@@ -194,8 +218,17 @@ def create_dot_constraints(dim, dots, white_tuples, black_tuples, variables):
     :rtype: List[Constraint]
     """
 
-    raise NotImplementedError
-
+    constraints = []
+    for dot in dots:
+        name = f"Dot({dot.row1},{dot.col1},{dot.row2},{dot.col2})"
+        scope = [variables[dot.row1][dot.col1], variables[dot.row2][dot.col2]]
+        con = Constraint(name, scope)
+        if dot.color == "white":
+            con.add_satisfying_tuples(white_tuples)
+        else:
+            con.add_satisfying_tuples(black_tuples)
+        constraints.append(con)
+    return constraints
 
 def satisfying_tuples_no_dots(dim):
     """
@@ -208,8 +241,12 @@ def satisfying_tuples_no_dots(dim):
     :rtype: List[(int,int)]
     """
 
-    raise NotImplementedError
-
+    no_dot_tuples = []
+    for i in range(1, dim + 1):
+        for j in range(1, dim + 1):
+            if abs(i - j) != 1 and i != 2*j and j != 2*i:
+                no_dot_tuples.append((i, j))
+    return no_dot_tuples
 
 def create_no_dot_constraints(dim, dots, no_dot_tuples, variables):
     """
@@ -232,5 +269,24 @@ def create_no_dot_constraints(dim, dots, no_dot_tuples, variables):
     :rtype: List[Constraint]
     """
 
-    raise NotImplementedError
+    constraints = []
+    dot_positions = set((dot.row1, dot.col1, dot.row2, dot.col2) for dot in dots)
+
+    for i in range(dim):
+        for j in range(dim):
+            if j < dim - 1 and (i, j, i, j+1) not in dot_positions and (i, j+1, i, j) not in dot_positions:
+                name = f"NoDot({i},{j},{i},{j+1})"
+                scope = [variables[i][j], variables[i][j+1]]
+                con = Constraint(name, scope)
+                con.add_satisfying_tuples(no_dot_tuples)
+                constraints.append(con)
+
+            if i < dim - 1 and (i, j, i+1, j) not in dot_positions and (i+1, j, i, j) not in dot_positions:
+                name = f"NoDot({i},{j},{i+1},{j})"
+                scope = [variables[i][j], variables[i+1][j]]
+                con = Constraint(name, scope)
+                con.add_satisfying_tuples(no_dot_tuples)
+                constraints.append(con)
+
+    return constraints
 
