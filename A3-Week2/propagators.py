@@ -42,13 +42,20 @@ def prop_FC(csp, last_assigned_var=None):
     for c in single_unassigned:
         scope = c.get_scope()
         assigned_status = [scope[0].is_assigned(), scope[1].is_assigned()]
-        unassigned_var = scope[0] if not assigned_status[0] else scope[1]
-        assigned_var = scope[1] if not assigned_status[0] else scope[0]
+
+        vars = {b: i for i, b in enumerate(assigned_status)}
+        unassigned_var = scope[vars[False]]
+        assigned_var = scope[vars[True]]
 
         current_domain = unassigned_var.cur_domain()
         for val in current_domain:
             assd_value = assigned_var.get_assigned_value()
-            value_to_check = (val, assd_value) if assigned_status[1] else (assd_value, val)
+            
+            value_to_check = [None, None]
+            value_to_check[vars[False]] = val
+            value_to_check[vars[True]] = assd_value
+            value_to_check = tuple(value_to_check)
+
             if not c.check(value_to_check):
                 unassigned_var.prune_value(value_to_check)
                 pruned.append((unassigned_var, val))
