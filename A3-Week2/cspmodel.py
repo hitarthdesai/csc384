@@ -184,7 +184,6 @@ def create_cage_constraints(dim, sat_tuples, variables):
     for i in range(0, dim, cage_height):
         for j in range(0, dim, cage_width):
             cage_vars = [variables[(i+x)*dim + (j+y)] for x in range(cage_height) for y in range(cage_width)]
-            print("cage_vars: ", cage_vars)
             for idx1 in range(len(cage_vars)):
                 for idx2 in range(idx1 + 1, len(cage_vars)):
                     name = f"Cage({i + idx1 // cage_width},{j + idx1 % cage_width},{i + idx2 // cage_width},{j + idx2 % cage_width})"
@@ -193,8 +192,6 @@ def create_cage_constraints(dim, sat_tuples, variables):
                     con.add_satisfying_tuples(sat_tuples)
                     constraints.append(con)
 
-    print("cage constraints: ", constraints.__len__())
-    
     return constraints
     
 def create_dot_constraints(dim, dots, white_tuples, black_tuples, variables):
@@ -227,7 +224,7 @@ def create_dot_constraints(dim, dots, white_tuples, black_tuples, variables):
         name = f"Dot({dot.cell_row},{dot.cell_col},{dot.cell2_row},{dot.cell2_col})"
         scope = [variables[dot.cell_row*dim+dot.cell_col], variables[dot.cell2_row*dim+dot.cell2_col]]
         con = Constraint(name, scope)
-        if dot.color == "white":
+        if dot.color == "o":
             con.add_satisfying_tuples(white_tuples)
         else:
             con.add_satisfying_tuples(black_tuples)
