@@ -220,8 +220,8 @@ def create_dot_constraints(dim, dots, white_tuples, black_tuples, variables):
 
     constraints = []
     for dot in dots:
-        name = f"Dot({dot.row1},{dot.col1},{dot.row2},{dot.col2})"
-        scope = [variables[dot.row1*dim+dot.col1], variables[dot.row2][dot.col2]]
+        name = f"Dot({dot.cell_row},{dot.cell_col},{dot.cell2_row},{dot.cell2_col})"
+        scope = [variables[dot.cell_row*dim+dot.cell_col], variables[dot.cell2_row][dot.cell2_col]]
         con = Constraint(name, scope)
         if dot.color == "white":
             con.add_satisfying_tuples(white_tuples)
@@ -270,7 +270,7 @@ def create_no_dot_constraints(dim, dots, no_dot_tuples, variables):
     """
 
     constraints = []
-    dot_positions = set((dot.row1, dot.col1, dot.row2, dot.col2) for dot in dots)
+    dot_positions = set((dot.cell_row, dot.cell_col, dot.cell2_row, dot.cell2_col) for dot in dots)
 
     for i in range(dim):
         for j in range(dim):
