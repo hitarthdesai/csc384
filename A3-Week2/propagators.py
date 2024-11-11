@@ -41,12 +41,14 @@ def prop_FC(csp, last_assigned_var=None):
     pruned = []
     for c in single_unassigned:
         scope = c.get_scope()
-        unassigned_var = c.get_unassigned_vars()[0]
-        assigned_var = next(filter(lambda var: var.is_assigned(), scope))
+        assigned_status = [scope[0].is_assigned(), scope[1].is_assigned()]
+        unassigned_var = scope[0] if not assigned_status[0] else scope[1]
+        assigned_var = scope[1] if not assigned_status[0] else scope[0]
 
         current_domain = unassigned_var.cur_domain()
         for val in current_domain:
-            value_to_check = (val, assigned_var.get_assigned_value())
+            assd_value = assigned_var.get_assigned_value()
+            value_to_check = (val, assd_value) if assigned_status[1] else (assd_value, val)
             if not c.check(value_to_check):
                 unassigned_var.prune_value(value_to_check)
                 pruned.append((unassigned_var, val))
