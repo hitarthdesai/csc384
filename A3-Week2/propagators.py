@@ -57,7 +57,7 @@ def prop_FC(csp, last_assigned_var=None):
             value_to_check = tuple(value_to_check)
 
             if not c.check(value_to_check):
-                unassigned_var.prune_value(value_to_check)
+                unassigned_var.prune_value(val)
                 pruned.append((unassigned_var, val))
                 if unassigned_var.cur_domain_size() == 0:
                     return False, pruned
