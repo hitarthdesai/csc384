@@ -371,6 +371,8 @@ class Constraint:
 
     def __str__(self):
         return("{}({})".format(self.name,[var.name for var in self.scope]))
+    def __repr__(self):
+        return("{}({})".format(self.name,[var.name for var in self.scope]))
 
 
 

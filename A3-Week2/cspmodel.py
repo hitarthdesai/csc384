@@ -181,15 +181,14 @@ def create_cage_constraints(dim, sat_tuples, variables):
     cage_size = 3 if dim == 9 else 2
     for i in range(0, dim, cage_size):
         for j in range(0, dim, cage_size):
-            for x in range(cage_size):
-                for y in range(cage_size):
-                    for a in range(x, cage_size):
-                        for b in range(y + 1 if a == x else 0, cage_size):
-                            name = f"Cage({i+x},{j+y},{i+a},{j+b})"
-                            scope = [variables[(i+x)*dim+j+y], variables[(i+a)*dim+j+b]]
-                            con = Constraint(name, scope)
-                            con.add_satisfying_tuples(sat_tuples)
-                            constraints.append(con)
+            cage_vars = [variables[(i+x)*dim + (j+y)] for x in range(cage_size) for y in range(cage_size)]
+            for idx1 in range(len(cage_vars)):
+                for idx2 in range(idx1 + 1, len(cage_vars)):
+                    name = f"Cage({i + idx1 // cage_size},{j + idx1 % cage_size},{i + idx2 // cage_size},{j + idx2 % cage_size})"
+                    scope = [cage_vars[idx1], cage_vars[idx2]]
+                    con = Constraint(name, scope)
+                    con.add_satisfying_tuples(sat_tuples)
+                    constraints.append(con)
     
     return constraints
     

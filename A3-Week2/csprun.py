@@ -118,7 +118,7 @@ if __name__ == "__main__":
             row.append(variables[i * board.dimension + j])
         var_list.append(row)
 
-    print(csp.cons)
+    print("cage constraints: ", list(filter(lambda x: x.name.startswith("Cage"), csp.cons)))
 
     
     # solver = BT(csp)
