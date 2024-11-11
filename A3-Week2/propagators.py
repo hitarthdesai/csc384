@@ -35,7 +35,25 @@ def prop_FC(csp, last_assigned_var=None):
     :rtype: boolean, List[(Variable, Value)]
     """
 
-    raise NotImplementedError
+    constraints = csp.get_all_cons() if last_assigned_var is None else csp.get_cons_with_var(last_assigned_var)
+    single_unassigned = [c for c in constraints if c.get_num_unassigned_vars() == 1]
+
+    pruned = []
+    for c in single_unassigned:
+        scope = c.get_scope()
+        unassigned_var = c.get_unassigned_vars()[0]
+        assigned_var = next(filter(lambda var: var.is_assigned(), scope))
+
+        current_domain = unassigned_var.cur_domain()
+        for val in current_domain:
+            value_to_check = (val, assigned_var.get_assigned_value())
+            if not c.check(value_to_check):
+                unassigned_var.prune_value(value_to_check)
+                pruned.append((unassigned_var, val))
+                if unassigned_var.cur_domain_size() == 0:
+                    return False, pruned
+
+    return True, pruned
 
 
 def prop_AC3(csp, last_assigned_var=None):

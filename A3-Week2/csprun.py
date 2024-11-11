@@ -72,14 +72,14 @@ if __name__ == "__main__":
     #     required=True,
     #     help="The output file that contains the solution."
     # )
-    # parser.add_argument(
-    #     "--propagator",
-    #     type=str,
-    #     required=False,
-    #     default='BT',
-    #     choices=['BT', 'FC', 'GAC'],
-    #     help="Propagator to be used. Options are BT, FC, and GAC."
-    # )
+    parser.add_argument(
+        "--propagator",
+        type=str,
+        required=False,
+        default='BT',
+        choices=['BT', 'FC', 'GAC'],
+        help="Propagator to be used. Options are BT, FC, and GAC."
+    )
     # parser.add_argument(
     #     "--heuristic",
     #     required=False,
@@ -94,9 +94,9 @@ if __name__ == "__main__":
     board = read_from_file(puzz_file)
 
     # print("Solving the Kropki Sudoku Puzzle below.")
-    # if args.propagator == 'FC':
-        # print("with Backtracking Search + Forward Checking")
-        # prop = prop_FC
+    if args.propagator == 'FC':
+        print("with Backtracking Search + Forward Checking")
+        prop = prop_FC
     # elif args.propagator == 'GAC':
         # print("with Backtracking Search + The AC-3 Algorithm")
         # prop = prop_AC3
@@ -119,27 +119,23 @@ if __name__ == "__main__":
         var_list.append(row)
 
     dot_constraints = list(filter(lambda x: x.name.startswith("Dot"), csp.cons))
-    print("dot constraints: ", dot_constraints[0].name)
-    print("dot constraints: ", dot_constraints[0].scope)
-    print("dot constraints: ", dot_constraints[0].sat_tuples)
+    solver = BT(csp)
 
-    
-    # solver = BT(csp)
-
+    solver.bt_search(prop)
     # if args.heuristic:
-        # print("Using the MRV heuristic")
-        # solver.bt_search(prop, ord_mrv)
+    #     print("Using the MRV heuristic")
+    #     solver.bt_search(prop, ord_mrv)
     # else:
-        # print("NOT using the MRV heuristic")
-        # solver.bt_search(prop)
+    #     print("NOT using the MRV heuristic")
+    #     solver.bt_search(prop)
 
     # fill the board with the variables' assigned values.
-    # for row in range(board.dimension):
-        # for col in range(board.dimension):
-            # board.cells[row][col] = var_list[row][col].get_assigned_value()
+    for row in range(board.dimension):
+        for col in range(board.dimension):
+            board.cells[row][col] = var_list[row][col].get_assigned_value()
 
     # print the solution
-    # print("The solved board is below.\n{}".format(board))
+    print("The solved board is below.\n{}".format(board))
 
     # saving the board to the output file
     # print("Saving the solved board to outputfile {}".format(args.outputfile))
