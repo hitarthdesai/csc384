@@ -105,7 +105,7 @@ if __name__ == "__main__":
         # prop = prop_BT
 
     # print the board
-    print("The initial board is below.\n{}".format(board))
+    # print("The initial board is below.\n{}".format(board))
 
     csp = kropki_model(board)
 

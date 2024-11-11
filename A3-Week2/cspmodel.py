@@ -177,18 +177,23 @@ def create_cage_constraints(dim, sat_tuples, variables):
     :rtype: List[Constraint]
     """
 
+    cage_width = 3 if dim == 9 else 2
+    cage_height = dim // cage_width
+
     constraints = []
-    cage_size = 3 if dim == 9 else 2
-    for i in range(0, dim, cage_size):
-        for j in range(0, dim, cage_size):
-            cage_vars = [variables[(i+x)*dim + (j+y)] for x in range(cage_size) for y in range(cage_size)]
+    for i in range(0, dim, cage_height):
+        for j in range(0, dim, cage_width):
+            cage_vars = [variables[(i+x)*dim + (j+y)] for x in range(cage_height) for y in range(cage_width)]
+            print("cage_vars: ", cage_vars)
             for idx1 in range(len(cage_vars)):
                 for idx2 in range(idx1 + 1, len(cage_vars)):
-                    name = f"Cage({i + idx1 // cage_size},{j + idx1 % cage_size},{i + idx2 // cage_size},{j + idx2 % cage_size})"
+                    name = f"Cage({i + idx1 // cage_width},{j + idx1 % cage_width},{i + idx2 // cage_width},{j + idx2 % cage_width})"
                     scope = [cage_vars[idx1], cage_vars[idx2]]
                     con = Constraint(name, scope)
                     con.add_satisfying_tuples(sat_tuples)
                     constraints.append(con)
+
+    print("cage constraints: ", constraints.__len__())
     
     return constraints
     
