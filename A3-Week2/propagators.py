@@ -109,7 +109,12 @@ def prop_AC3(csp, last_assigned_var=None):
                     if to_check in c.sup_tuples:
                         continue
                     else:
+                        var.prune_value(val)
                         pruned.append((var, val))
+                        if var.cur_domain_size() == 0:
+                                return False, pruned
+                        else:
+                            queue.extend(csp.get_cons_with_var(var))
 
     found_solution = all(map(lambda x: x.cur_domain_size() == 1, csp.get_all_vars()))
     return found_solution, pruned
