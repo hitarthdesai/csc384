@@ -93,16 +93,16 @@ if __name__ == "__main__":
     puzz_file = args.inputfile
     board = read_from_file(puzz_file)
 
-    # print("Solving the Kropki Sudoku Puzzle below.")
+    print("Solving the Kropki Sudoku Puzzle below.")
     if args.propagator == 'FC':
         print("with Backtracking Search + Forward Checking")
         prop = prop_FC
-    # elif args.propagator == 'GAC':
-        # print("with Backtracking Search + The AC-3 Algorithm")
-        # prop = prop_AC3
-    # else:
-        # print("with Backtracking Search only")
-        # prop = prop_BT
+    elif args.propagator == 'GAC':
+        print("with Backtracking Search + The AC-3 Algorithm")
+        prop = prop_AC3
+    else:
+        print("with Backtracking Search only")
+        prop = prop_BT
 
     # print the board
     # print("The initial board is below.\n{}".format(board))

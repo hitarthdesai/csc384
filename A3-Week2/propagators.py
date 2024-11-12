@@ -92,8 +92,27 @@ def prop_AC3(csp, last_assigned_var=None):
         all the constraints and a list of variable and value pairs pruned. 
     :rtype: boolean, List[(Variable, Value)]
     """
-    
-    raise NotImplementedError
+
+    constraints = csp.get_all_cons() if last_assigned_var is None else csp.get_cons_with_var(last_assigned_var)
+    queue = constraints.copy()
+
+    pruned = []
+    while queue:
+        c = queue.pop(0)
+        scope = c.get_scope()
+        for var in scope:
+            if var.is_assigned():
+                continue
+            else:
+                for val in var.cur_domain():
+                    to_check = (var, val)
+                    if to_check in c.sup_tuples:
+                        continue
+                    else:
+                        pruned.append((var, val))
+
+    found_solution = all(map(lambda x: x.cur_domain_size() == 1, csp.get_all_vars()))
+    return found_solution, pruned
 
 def ord_mrv(csp):
     """
