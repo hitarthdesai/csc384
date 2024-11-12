@@ -93,31 +93,27 @@ def prop_AC3(csp, last_assigned_var=None):
     :rtype: boolean, List[(Variable, Value)]
     """
 
-    constraints = csp.get_all_cons() if last_assigned_var is None else csp.get_cons_with_var(last_assigned_var)
-    queue = constraints.copy()
+    queue = csp.get_all_cons() if last_assigned_var is None else csp.get_cons_with_var(last_assigned_var)
 
     pruned = []
     while queue:
         c = queue.pop(0)
-        scope = c.get_scope()
-        for var in scope:
-            if var.is_assigned():
-                continue
-            else:
-                for val in var.cur_domain():
-                    to_check = (var, val)
-                    if to_check in c.sup_tuples:
-                        continue
-                    else:
-                        var.prune_value(val)
-                        pruned.append((var, val))
-                        if var.cur_domain_size() == 0:
-                                return False, pruned
-                        else:
-                            queue.extend(csp.get_cons_with_var(var))
+        X, Y = c.get_scope()
 
-    found_solution = all(map(lambda x: x.cur_domain_size() == 1, csp.get_all_vars()))
-    return found_solution, pruned
+        for v in X.cur_domain():
+            values_to_check = [(v, w) for w in Y.cur_domain()]
+            at_least_one_sat = any(c.check(t) for t in values_to_check)
+
+            if at_least_one_sat:
+                continue
+
+            X.prune_value(v)
+            pruned.append((X, v))
+            
+            if X.cur_domain_size() == 0:
+                return False, pruned
+
+    return True, pruned
 
 def ord_mrv(csp):
     """
