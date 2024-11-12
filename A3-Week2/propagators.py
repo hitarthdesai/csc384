@@ -109,9 +109,12 @@ def prop_AC3(csp, last_assigned_var=None):
 
             X.prune_value(v)
             pruned.append((X, v))
-            
             if X.cur_domain_size() == 0:
                 return False, pruned
+
+            for c_prime in csp.get_cons_with_var(X):
+                if c_prime != c and c_prime not in queue:
+                    queue.append(c_prime)
 
     return True, pruned
 
