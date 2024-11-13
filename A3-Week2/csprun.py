@@ -129,6 +129,11 @@ if __name__ == "__main__":
     #     print("NOT using the MRV heuristic")
     #     solver.bt_search(prop)
 
+    domains = list(map(lambda v: v.cur_domain(), csp.get_all_vars()))
+    print("Domains: ", domains)
+    print("Any empty: ", any(len(d) == 0 for d in domains))
+
+
     # fill the board with the variables' assigned values.
     for row in range(board.dimension):
         for col in range(board.dimension):
