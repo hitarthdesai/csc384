@@ -5,6 +5,8 @@
 ##
 ############################################################
 
+from collections import deque
+from cspmodel import *
 
 def prop_FC(csp, last_assigned_var=None):
     """
@@ -46,11 +48,10 @@ def prop_FC(csp, last_assigned_var=None):
         vars = {b: i for i, b in enumerate(assigned_status)}
         unassigned_var = scope[vars[False]]
         assigned_var = scope[vars[True]]
+        assd_value = assigned_var.get_assigned_value()
 
         current_domain = unassigned_var.cur_domain()
         for val in current_domain:
-            assd_value = assigned_var.get_assigned_value()
-            
             value_to_check = [None, None]
             value_to_check[vars[False]] = val
             value_to_check[vars[True]] = assd_value
@@ -93,28 +94,49 @@ def prop_AC3(csp, last_assigned_var=None):
     :rtype: boolean, List[(Variable, Value)]
     """
 
-    queue = csp.get_all_cons() if last_assigned_var is None else csp.get_cons_with_var(last_assigned_var)
+    def revise(var, con):
+        revised = False
+        pruned = []
+        for val in var.cur_domain():
+            is_consistent = False
+            tuples = con.sup_tuples.get((var, val), [])
+            for t in tuples:
+                all_domains_satisfied = True
+                for stuff in zip(con.get_scope(), t):
+                    other_var, other_val = stuff
+                    if other_var.in_cur_domain(other_val):
+                        continue
+
+                    all_domains_satisfied = False
+                    break
+
+                if all_domains_satisfied:
+                    is_consistent = True
+                    break
+            if not is_consistent:
+                var.prune_value(val)
+                pruned.append((var, val))
+                revised = True
+
+        return revised, pruned
+
+    cons = csp.get_all_cons() if last_assigned_var is None else csp.get_cons_with_var(last_assigned_var)
+    queue = deque([(v, c) for c in cons for v in c.get_scope()])
 
     pruned = []
     while queue:
-        c = queue.pop(0)
-        X, Y = c.get_scope()
+        var, con = queue.popleft()
+        revised, pruned_vals = revise(var, con)
+        if not revised:
+            continue
 
-        for v in X.cur_domain():
-            values_to_check = [(v, w) for w in Y.cur_domain()]
-            at_least_one_sat = any(c.check(t) for t in values_to_check)
-
-            if at_least_one_sat:
-                continue
-
-            X.prune_value(v)
-            pruned.append((X, v))
-            if X.cur_domain_size() == 0:
-                return False, pruned
-
-            for c_prime in csp.get_cons_with_var(X):
-                if c_prime != c and c_prime not in queue:
-                    queue.append(c_prime)
+        pruned.extend(pruned_vals)
+        if var.cur_domain_size() == 0:
+            return False, pruned
+        for con_prime in csp.get_cons_with_var(var):
+            for neighbor in con_prime.get_scope():
+                if neighbor != var:
+                    queue.append((neighbor, con_prime))
 
     return True, pruned
 
