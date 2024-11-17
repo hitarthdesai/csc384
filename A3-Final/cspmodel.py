@@ -221,7 +221,7 @@ def create_dot_constraints(dim, dots, white_tuples, black_tuples, variables):
 
     constraints = []
     for dot in dots:
-        name = f"Dot({dot.cell_row},{dot.cell_col},{dot.cell2_row},{dot.cell2_col})"
+        name = f"Dot_{"White" if dot.color == "o" else "Black"}({dot.cell_row},{dot.cell_col},{dot.cell2_row},{dot.cell2_col})"
         scope = [variables[dot.cell_row*dim+dot.cell_col], variables[dot.cell2_row*dim+dot.cell2_col]]
         con = Constraint(name, scope)
         if dot.color == "o":

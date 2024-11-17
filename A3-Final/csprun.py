@@ -80,12 +80,12 @@ if __name__ == "__main__":
         choices=['BT', 'FC', 'GAC'],
         help="Propagator to be used. Options are BT, FC, and GAC."
     )
-    # parser.add_argument(
-    #     "--heuristic",
-    #     required=False,
-    #     action="store_true",
-    #     help="Select the next variable using the MRV heuristic."
-    # )
+    parser.add_argument(
+        "--heuristic",
+        required=False,
+        action="store_true",
+        help="Select the next variable using the MRV heuristic."
+    )
 
     args = parser.parse_args()
 
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         prop = prop_BT
 
     # print the board
-    # print("The initial board is below.\n{}".format(board))
+    print("The initial board is below.\n{}".format(board))
 
     csp = kropki_model(board)
 
@@ -121,13 +121,12 @@ if __name__ == "__main__":
     dot_constraints = list(filter(lambda x: x.name.startswith("Dot"), csp.cons))
     solver = BT(csp)
 
-    solver.bt_search(prop)
-    # if args.heuristic:
-    #     print("Using the MRV heuristic")
-    #     solver.bt_search(prop, ord_mrv)
-    # else:
-    #     print("NOT using the MRV heuristic")
-    #     solver.bt_search(prop)
+    if args.heuristic:
+        print("Using the MRV heuristic")
+        solver.bt_search(prop, ord_mrv)
+    else:
+        print("NOT using the MRV heuristic")
+        solver.bt_search(prop)
 
     domains = list(map(lambda v: v.cur_domain(), csp.get_all_vars()))
 
@@ -140,8 +139,8 @@ if __name__ == "__main__":
     print("The solved board is below.\n{}".format(board))
 
     # saving the board to the output file
-    # print("Saving the solved board to outputfile {}".format(args.outputfile))
-    # outputfile = open(args.outputfile, "w")
-    # print(board.dimension, file=outputfile)
-    # print(board, file=outputfile)
-    # outputfile.close()
+    print("Saving the solved board to outputfile {}".format(args.outputfile))
+    outputfile = open(args.outputfile, "w")
+    print(board.dimension, file=outputfile)
+    print(board, file=outputfile)
+    outputfile.close()
