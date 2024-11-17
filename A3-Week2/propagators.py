@@ -38,26 +38,18 @@ def prop_FC(csp, last_assigned_var=None):
     """
 
     constraints = csp.get_all_cons() if last_assigned_var is None else csp.get_cons_with_var(last_assigned_var)
-    single_unassigned = [c for c in constraints if c.get_num_unassigned_vars() == 1]
+    single_unassigned = list(filter(lambda c: c.get_num_unassigned_vars() == 1, constraints))
 
     pruned = []
     for c in single_unassigned:
-        scope = c.get_scope()
-        assigned_status = [scope[0].is_assigned(), scope[1].is_assigned()]
+        values_to_check = [v.get_assigned_value() for v in c.get_scope()]
+        unassigned_idx = values_to_check.index(None)
+        unassigned_var = c.get_scope()[unassigned_idx]
+        for val in unassigned_var.cur_domain():
+            values_to_check[unassigned_idx] = val
+            values_to_check_tuple = tuple(values_to_check)
 
-        vars = {b: i for i, b in enumerate(assigned_status)}
-        unassigned_var = scope[vars[False]]
-        assigned_var = scope[vars[True]]
-        assd_value = assigned_var.get_assigned_value()
-
-        current_domain = unassigned_var.cur_domain()
-        for val in current_domain:
-            value_to_check = [None, None]
-            value_to_check[vars[False]] = val
-            value_to_check[vars[True]] = assd_value
-            value_to_check = tuple(value_to_check)
-
-            if not c.check(value_to_check):
+            if not c.check(values_to_check_tuple):
                 unassigned_var.prune_value(val)
                 pruned.append((unassigned_var, val))
                 if unassigned_var.cur_domain_size() == 0:
@@ -154,7 +146,7 @@ def ord_mrv(csp):
 
     """
 
-    raise NotImplementedError
+    return min(csp.get_all_unasgn_vars(), key=lambda v: v.cur_domain_size())
 
 
 ###############################################################################
