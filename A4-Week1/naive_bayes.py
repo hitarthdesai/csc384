@@ -24,8 +24,15 @@ def normalize(factor):
     :return: a new Factor object resulting from normalizing factor.
     '''
 
-    ### YOUR CODE HERE ###
-    raise NotImplementedError
+    new_factor_name = f"Normalized_{factor.name}"
+    new_factor = Factor(new_factor_name, factor.scope)
+
+    factor_table = convert_factor_table_key_to_tuple(factor.get_table())
+    total = sum(factor_table.values())
+    new_factor_values = list(map(lambda k, v: list(k) + [v/total], factor_table.items()))
+    new_factor.add_values(new_factor_values)
+
+    return new_factor
 
 
 def restrict(factor, variable, value):
