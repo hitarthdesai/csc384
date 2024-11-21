@@ -31,11 +31,28 @@ def restrict(factor, variable, value):
     :param value: the value to restrict the variable to
     :return: a new Factor object resulting from restricting variable to value.
              This new factor no longer has variable in it.
-    ''' 
+    '''
 
-    ### YOUR CODE HERE ###
-    raise NotImplementedError
+    new_factor_name = f"Restricted_{factor.name}_by_{variable}={value}"
+    new_factor_scope = list(filter(lambda v: v.name != variable.name, factor.scope))
+    new_factor = Factor(new_factor_name, new_factor_scope)
 
+    new_factor_values = []
+    factor_values = factor.get_table()
+    for key, prob in factor_values.items():
+        keys = map(lambda x: x.name, factor.scope)
+        values = key.split(',').map(lambda x: x.strip().split("=")[1].strip())
+        vars_values = dict(zip(keys, values))
+
+        t = [None] * len(new_factor_scope)
+        for i, var in enumerate(new_factor_scope):
+            t[i] = vars_values[var.name]
+        
+        t.append(prob)
+        new_factor_values.append(t)
+
+    new_factor.add_values(new_factor_values)
+    return new_factor
 
 
 def sum_out(factor, variable):
