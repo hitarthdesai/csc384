@@ -7,6 +7,13 @@
 from bnetbase import Variable, Factor, BN
 import csv
 
+def convert_factor_table_key_to_tuple(factor_table):
+    new_factor_table = {}
+    for key, prob in factor_table.items():
+        new_key = key.split(',').map(lambda x: x.strip().split("=")[1].strip())
+        new_factor_table[new_key] = prob
+
+    return new_factor_table
 
 def normalize(factor):
     '''
@@ -33,21 +40,24 @@ def restrict(factor, variable, value):
              This new factor no longer has variable in it.
     '''
 
+    var_index = next(i for i, v in enumerate(factor.scope) if v.name == variable.name)
     new_factor_name = f"Restricted_{factor.name}_by_{variable}={value}"
     new_factor_scope = list(filter(lambda v: v.name != variable.name, factor.scope))
     new_factor = Factor(new_factor_name, new_factor_scope)
 
     new_factor_values = []
-    factor_values = factor.get_table()
-    for key, prob in factor_values.items():
-        keys = map(lambda x: x.name, factor.scope)
-        values = key.split(',').map(lambda x: x.strip().split("=")[1].strip())
-        vars_values = dict(zip(keys, values))
+    factor_table = convert_factor_table_key_to_tuple(factor.get_table())
+    for key, prob in factor_table.items():
+        if key[var_index] != value:
+            continue
 
         t = [None] * len(new_factor_scope)
-        for i, var in enumerate(new_factor_scope):
-            t[i] = vars_values[var.name]
-        
+        for i, val in enumerate(key):
+            if i < var_index:
+                t[i] = val
+            elif i > var_index:
+                t[i-1] = val
+
         t.append(prob)
         new_factor_values.append(t)
 
@@ -64,10 +74,24 @@ def sum_out(factor, variable):
     :param variable: the variable to sum out.
     :return: a new Factor object resulting from summing out variable from the factor.
              This new factor no longer has variable in it.
-    '''       
+    '''
 
-    ### YOUR CODE HERE ###
-    raise NotImplementedError
+    var_index = next(i for i, v in enumerate(factor.scope) if v.name == variable.name)
+    new_factor_name = f"Summed_out_{factor.name}_by_{variable.name}"
+    new_factor_scope = list(filter(lambda v: v.name != variable.name, factor.scope))
+    new_factor = Factor(new_factor_name, new_factor_scope)
+
+    summed_out_table = {}
+    factor_table = convert_factor_table_key_to_tuple(factor.get_table())
+    for key, prob in factor_table.items():
+        new_key = list(key)
+        new_key.pop(var_index)
+        new_key = tuple(new_key)
+        summed_out_table[new_key] = summed_out_table.get(new_key, 0) + prob
+
+    values = list(map(lambda k, v: list(k) + [v], summed_out_table.items()))
+    new_factor.add_values(values)
+    return new_factor
 
 
 
