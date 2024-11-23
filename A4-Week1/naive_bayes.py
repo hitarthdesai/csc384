@@ -110,8 +110,50 @@ def multiply(factor_list):
     :param factor_list: a list of Factor objects.
     :return: a new Factor object resulting from multiplying all the factors in factor_list.
     ''' 
-    ### YOUR CODE HERE ###
-    raise NotImplementedError
+
+    new_factor_name = f"Multiplied_{'_'.join([f.name for f in factor_list])}"
+
+    new_factor_scope = set()
+    for factor in factor_list:
+        new_factor_scope.update(factor.scope)
+    new_factor_scope = list(new_factor_scope)
+    new_factor = Factor(new_factor_name, new_factor_scope)
+
+    common_vars = set()
+    for factor in factor_list:
+        common_vars.intersection_update(factor.scope)
+    common_vars = list(common_vars)
+
+
+    first_factor = factor_list[0]
+    first_factor_table = convert_factor_table_key_to_tuple(first_factor.get_table())
+    for key, prob in first_factor_table.items():
+
+        new_values = []
+        stuff = zip(first_factor.scope, key)
+        for var, val in stuff:
+            idx = new_factor_scope.index(var)
+            new_values[idx] = val
+
+        for second_factor in factor_list[1:]:
+            second_factor_table = convert_factor_table_key_to_tuple(second_factor.get_table())
+
+            for second_key, second_prob in second_factor_table.items():
+                same_common_vars = all(key[i] == second_key[i] for i in range(len(key)))
+                if not same_common_vars:
+                    continue
+                
+                stuff = zip(first_factor.scope, key)
+                for var, val in stuff:
+                    idx = new_factor_scope.index(var)
+                    new_values[idx] = val
+
+                prob *= second_prob
+                break
+
+        new_factor.add_values(new_values + [prob])
+
+    return new_factor
 
 
 
@@ -134,9 +176,36 @@ def ve(bayes_net, var_query, varlist_evidence):
              the settings of the evidence variables.
 
     '''
-    ### YOUR CODE HERE ###
-    raise NotImplementedError
 
+    hidden_vars = filter(lambda v: v.name != var_query.name and v not in varlist_evidence, bayes_net.variables)
+
+    new_factors = []
+    for factor in bayes_net.factors:
+        for var in varlist_evidence:
+            if var in factor.scope:
+                new_factor = restrict(factor, var, var.dom[var.evidence_index])
+            else:
+                new_factors.append(factor)
+        
+        new_factors.append(new_factor)
+    
+    factors = new_factors
+    for var in hidden_vars:
+        relevant_factors = []
+        irrelevant_factors = []
+        for factor in factors:
+            if var in factor.scope:
+                relevant_factors.append(factor)
+            else:
+                irrelevant_factors.append(factor)
+
+        new_factor = multiply(relevant_factors)
+        new_factor = sum_out(new_factor, var)
+        factors = irrelevant_factors + [new_factor]
+
+    final_factor = multiply(factors)
+    final_factor = normalize(final_factor)
+    return final_factor
 
 
 ## The order of these domains is consistent with the order of the columns in the data set.
@@ -180,9 +249,30 @@ def naive_bayes_model(data_file, variable_domains=salary_variable_domains, class
         for row in reader:
             input_data.append(row)
 
-    ### YOUR CODE HERE ###
-    raise NotImplementedError
+    vars = [Variable(name, domain) for name, domain in variable_domains.items()]
+    vars_without_class_var = filter(lambda v: v.name != class_var.name, vars)
 
+    factors = []
+    for i, v in enumerate(vars_without_class_var):
+        factor = Factor(f"{v.name},{class_var.name}", [v, class_var])
+        factors.append(factor)
+
+        dict = {}
+        for row in input_data:
+            items = row.split(",")
+            key = (items[i], items[-1])
+            dict[key] = dict.get(key, 0) + 1
+
+        values = []
+        for key, value in dict.items():
+            values.append(list(key) + [value])
+        factor.add_values(values)
+
+    all_factors = [Factor(class_var.name, [class_var])] + factors
+
+    bn = BN("Naive_Bayes_Model_Salary", vars, all_factors)
+
+    return bn
 
 
 def explore(bayes_net, question):
