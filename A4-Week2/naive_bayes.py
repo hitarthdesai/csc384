@@ -304,23 +304,32 @@ def naive_bayes_model(data_file, variable_domains=salary_variable_domains, class
     vars = [Variable(name, domain) for name, domain in variable_domains.items()]
     vars.pop() # remove Salary variable
 
-    factors = []
-    for i, v in enumerate(vars):
-        factor = Factor(f"{v.name},{class_var.name}", [v, class_var])
-        factors.append(factor)
-
-        factor_data = map(lambda row: (row[i], row[-1]), input_data)
-        counts = Counter(factor_data)
-
-        total = sum(counts.values())
-        values = list(map(lambda i: list(i[0]) + [i[1]/total], counts.items()))
-        factor.add_values(values)
-
     class_var_factor = Factor(class_var.name, [class_var])
     salary_counts = Counter(map(lambda row: row[-1], input_data))
     total = sum(salary_counts.values())
     salary_values = list(map(lambda i: [i[0], i[1]/total], salary_counts.items()))
     class_var_factor.add_values(salary_values)
+
+    factors = []
+    for i, v in enumerate(vars):
+        factor = Factor(f"{v.name},{class_var.name}", [v, class_var])
+        print(factor.name)
+        factors.append(factor)
+
+        factor_data = map(lambda row: (row[i], row[-1]), input_data)
+        counts = Counter(factor_data)
+        for s in salary_variable_domains["Salary"]:
+            for value in v.domain():
+                if (value, s) not in counts:
+                    counts[(value, s)] = 0
+
+        for count in counts:
+            counts[count] = counts[count] / salary_counts[count[1]]
+        
+        values = list(map(lambda i: list(i[0]) + [i[1]/total], counts.items()))
+        factor.add_values(values)
+
+    
 
     vars = [class_var] + vars
     all_factors = [class_var_factor] + factors
