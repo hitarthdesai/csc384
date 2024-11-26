@@ -313,7 +313,6 @@ def naive_bayes_model(data_file, variable_domains=salary_variable_domains, class
     factors = []
     for i, v in enumerate(vars):
         factor = Factor(f"{v.name},{class_var.name}", [v, class_var])
-        print(factor.name)
         factors.append(factor)
 
         factor_data = map(lambda row: (row[i], row[-1]), input_data)
@@ -323,13 +322,11 @@ def naive_bayes_model(data_file, variable_domains=salary_variable_domains, class
                 if (value, s) not in counts:
                     counts[(value, s)] = 0
 
-        for count in counts:
-            counts[count] = counts[count] / salary_counts[count[1]]
+        for c in counts:
+            counts[c] = counts[c] / salary_counts[c[1]]
         
-        values = list(map(lambda i: list(i[0]) + [i[1]/total], counts.items()))
+        values = list(map(lambda i: list(i[0]) + [i[1]], counts.items()))
         factor.add_values(values)
-
-    
 
     vars = [class_var] + vars
     all_factors = [class_var_factor] + factors
@@ -356,7 +353,10 @@ def explore(bayes_net, question):
     raise NotImplementedError
 
 
-# data_file = "adult-train_tiny.csv"
-# bn = naive_bayes_model(data_file)
-# stuff = ve(bn, salary_variable, [])
-# print(stuff.print_table())
+data_file = "adult-train.csv"
+bn = naive_bayes_model(data_file)
+work_salary_factor = next(filter(lambda f: f.name == "Work,Salary", bn.factors()))
+print(work_salary_factor.print_table())
+
+stuff = ve(bn, salary_variable, [])
+print(stuff.print_table())
