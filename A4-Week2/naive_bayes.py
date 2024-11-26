@@ -219,9 +219,6 @@ def ve(bayes_net, var_query, varlist_evidence):
 
     '''
 
-    if var_query is None:
-        return None
-
     if len(varlist_evidence) == 0:
         new_factors = bayes_net.factors()
     else:
