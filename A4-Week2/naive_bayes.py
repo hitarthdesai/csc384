@@ -8,7 +8,34 @@ from collections import Counter
 from bnetbase import Variable, Factor, BN
 import csv
 
-def convert_factor_table_key_to_tuple(factor_table):
+def convert_factor_table_key_to_tuple(factor):
+    def get_table(factor):
+        saved_values = []  #save and then restore the variable assigned values.
+
+        for v in factor.scope:
+            saved_values.append(v.get_assignment_index())
+
+        prob_dict = {}
+        factor.get_values_recursive(factor.scope, prob_dict)
+
+        for v in factor.scope:
+            v.set_assignment_index(saved_values[0])
+            saved_values = saved_values[1:]
+
+        return prob_dict
+    
+    def get_values_recursive(factor, vars, info_dict):
+        if len(vars) == 0:
+            newkey = ""
+            for v in factor.scope:
+                newkey += "{} = {},".format(v.name, v.get_assignment())
+            info_dict[newkey] = factor.get_value_at_current_assignments()
+        else:
+            for val in vars[0].domain():
+                vars[0].set_assignment(val)
+                factor.get_values_recursive(vars[1:], info_dict)
+    
+    factor_table = get_table(factor)
     new_factor_table = {}
     for key, prob in factor_table.items():
         components = filter(lambda x: len(x.strip()) > 0, key.split(','))
@@ -34,7 +61,7 @@ def normalize(factor):
     new_factor_name = f"Normalized_{factor.name}"
     new_factor = Factor(new_factor_name, factor.scope)
 
-    factor_table = convert_factor_table_key_to_tuple(factor.get_table())
+    factor_table = convert_factor_table_key_to_tuple(factor)
     total = sum(factor_table.values())
     if total == 0:
         return factor
@@ -62,7 +89,7 @@ def restrict(factor, variable, value):
     new_factor = Factor(new_factor_name, new_factor_scope)
 
     new_factor_values = []
-    factor_table = convert_factor_table_key_to_tuple(factor.get_table())
+    factor_table = convert_factor_table_key_to_tuple(factor)
     for key, prob in factor_table.items():
         if key[var_index] != value:
             continue
@@ -102,7 +129,7 @@ def sum_out(factor, variable):
     new_factor = Factor(new_factor_name, new_factor_scope)
 
     summed_out_table = {}
-    factor_table = convert_factor_table_key_to_tuple(factor.get_table())
+    factor_table = convert_factor_table_key_to_tuple(factor)
     for key, prob in factor_table.items():
         new_key = list(key)
         new_key.pop(var_index)
