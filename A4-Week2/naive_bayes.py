@@ -235,8 +235,8 @@ def ve(bayes_net, var_query, varlist_evidence):
 
     factors = new_factors
     
-    if len(varlist_evidence) == 0:
-        hidden_vars = filter(lambda v: v.name != var_query.name, bayes_net.variables())
+    if var_query is None:
+        hidden_vars = filter(lambda v: v not in varlist_evidence, bayes_net.variables())
     else:
         hidden_vars = filter(lambda v: v.name != var_query.name and v not in varlist_evidence, bayes_net.variables())
 
@@ -350,10 +350,10 @@ def explore(bayes_net, question):
     raise NotImplementedError
 
 
-data_file = "adult-train.csv"
-bn = naive_bayes_model(data_file)
-work_salary_factor = next(filter(lambda f: f.name == "Work,Salary", bn.factors()))
-print(work_salary_factor.print_table())
+# data_file = "adult-train.csv"
+# bn = naive_bayes_model(data_file)
+# work_salary_factor = next(filter(lambda f: f.name == "Work,Salary", bn.factors()))
+# print(work_salary_factor.print_table())
 
-stuff = ve(bn, salary_variable, [])
-print(stuff.print_table())
+# stuff = ve(bn, salary_variable, [])
+# print(stuff.print_table())
