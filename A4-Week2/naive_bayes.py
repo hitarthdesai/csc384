@@ -33,7 +33,7 @@ def convert_factor_table_key_to_tuple(factor):
         else:
             for val in vars[0].domain():
                 vars[0].set_assignment(val)
-                factor.get_values_recursive(vars[1:], info_dict)
+                get_values_recursive(factor, vars[1:], info_dict)
     
     factor_table = get_table(factor)
     new_factor_table = {}
