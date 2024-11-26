@@ -363,8 +363,7 @@ class BN:
             for v in f.get_scope():     
                 if not v in self.Variables:
                     print("Bayes net initialization error")
-                    print("Factor scope {} has variable {} that", end='')
-                    print(" does not appear in list of variables {}.".format(list(map(lambda x: x.name, f.get_scope())), v.name, list(map(lambda x: x.name, Vars))))
+                    print("Factor scope {} has variable {} that does not appear in list of variables {}.".format(list(map(lambda x: x.name, f.get_scope())), v.name, list(map(lambda x: x.name, Vars))))
 
     def factors(self):
         '''

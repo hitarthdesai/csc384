@@ -4,13 +4,20 @@
 ## v1.0
 ############################################################
 
+from collections import Counter
 from bnetbase import Variable, Factor, BN
 import csv
 
 def convert_factor_table_key_to_tuple(factor_table):
     new_factor_table = {}
     for key, prob in factor_table.items():
-        new_key = key.split(',').map(lambda x: x.strip().split("=")[1].strip())
+        components = filter(lambda x: len(x.strip()) > 0, key.split(','))
+        new_key = []
+        for component in components:
+            first_equal = component.index("=")
+            value = component[first_equal+1:].strip()
+            new_key.append(value)
+        new_key = tuple(new_key)
         new_factor_table[new_key] = prob
 
     return new_factor_table
@@ -29,7 +36,9 @@ def normalize(factor):
 
     factor_table = convert_factor_table_key_to_tuple(factor.get_table())
     total = sum(factor_table.values())
-    new_factor_values = list(map(lambda k, v: list(k) + [v/total], factor_table.items()))
+    if total == 0:
+        return factor
+    new_factor_values = list(map(lambda i: list(i[0]) + [i[1]/total], factor_table.items()))
     new_factor.add_values(new_factor_values)
 
     return new_factor
@@ -83,7 +92,11 @@ def sum_out(factor, variable):
              This new factor no longer has variable in it.
     '''
 
-    var_index = next(i for i, v in enumerate(factor.scope) if v.name == variable.name)
+    var_index = list(i for i, v in enumerate(factor.scope) if v.name == variable.name)
+    if len(var_index) == 0:
+        return factor
+    var_index = var_index[0]
+
     new_factor_name = f"Summed_out_{factor.name}_by_{variable.name}"
     new_factor_scope = list(filter(lambda v: v.name != variable.name, factor.scope))
     new_factor = Factor(new_factor_name, new_factor_scope)
@@ -96,7 +109,7 @@ def sum_out(factor, variable):
         new_key = tuple(new_key)
         summed_out_table[new_key] = summed_out_table.get(new_key, 0) + prob
 
-    values = list(map(lambda k, v: list(k) + [v], summed_out_table.items()))
+    values = list(map(lambda i: list(i[0]) + [i[1]], summed_out_table.items()))
     new_factor.add_values(values)
     return new_factor
 
@@ -109,7 +122,10 @@ def multiply(factor_list):
 
     :param factor_list: a list of Factor objects.
     :return: a new Factor object resulting from multiplying all the factors in factor_list.
-    ''' 
+    '''
+
+    if len(factor_list) == 0:
+        return Factor("Empty_Factor", [])
 
     new_factor_name = f"Multiplied_{'_'.join([f.name for f in factor_list])}"
 
@@ -129,10 +145,10 @@ def multiply(factor_list):
     first_factor_table = convert_factor_table_key_to_tuple(first_factor.get_table())
     for key, prob in first_factor_table.items():
 
-        new_values = []
+        new_values = [None] * len(new_factor_scope)
         stuff = zip(first_factor.scope, key)
         for var, val in stuff:
-            idx = new_factor_scope.index(var)
+            idx = next((i for i, v in enumerate(new_factor_scope) if v.name == var.name), None)
             new_values[idx] = val
 
         for second_factor in factor_list[1:]:
@@ -145,13 +161,13 @@ def multiply(factor_list):
                 
                 stuff = zip(first_factor.scope, key)
                 for var, val in stuff:
-                    idx = new_factor_scope.index(var)
+                    idx = next((i for i, v in enumerate(new_factor_scope) if v.name == var.name), None)
                     new_values[idx] = val
 
                 prob *= second_prob
                 break
 
-        new_factor.add_values(new_values + [prob])
+        new_factor.add_values([new_values + [prob]])
 
     return new_factor
 
@@ -177,18 +193,21 @@ def ve(bayes_net, var_query, varlist_evidence):
 
     '''
 
-    hidden_vars = filter(lambda v: v.name != var_query.name and v not in varlist_evidence, bayes_net.variables)
+    hidden_vars = filter(lambda v: v.name != var_query.name and v not in varlist_evidence, bayes_net.variables())
 
     new_factors = []
-    for factor in bayes_net.factors:
+    for factor in bayes_net.factors():
+        if len(varlist_evidence) == 0:
+            new_factors.append(factor)
+            continue
+
         for var in varlist_evidence:
             if var in factor.scope:
                 new_factor = restrict(factor, var, var.dom[var.evidence_index])
+                new_factors.append(new_factor)
             else:
                 new_factors.append(factor)
-        
-        new_factors.append(new_factor)
-    
+
     factors = new_factors
     for var in hidden_vars:
         relevant_factors = []
@@ -208,12 +227,11 @@ def ve(bayes_net, var_query, varlist_evidence):
     return final_factor
 
 
-## The order of these domains is consistent with the order of the columns in the data set.
 salary_variable_domains = {
 "Work": ['Not Working', 'Government', 'Private', 'Self-emp'],
 "Education": ['<Gr12', 'HS-Graduate', 'Associate', 'Professional', 'Bachelors', 'Masters', 'Doctorate'],
-"Occupation": ['Admin', 'Military', 'Manual Labour', 'Office Labour', 'Service', 'Professional'],
 "MaritalStatus": ['Not-Married', 'Married', 'Separated', 'Widowed'],
+"Occupation": ['Admin', 'Military', 'Manual Labour', 'Office Labour', 'Service', 'Professional'],
 "Relationship": ['Wife', 'Own-child', 'Husband', 'Not-in-family', 'Other-relative', 'Unmarried'],
 "Race": ['White', 'Black', 'Asian-Pac-Islander', 'Amer-Indian-Eskimo', 'Other'],
 "Gender": ['Male', 'Female'],
@@ -250,26 +268,28 @@ def naive_bayes_model(data_file, variable_domains=salary_variable_domains, class
             input_data.append(row)
 
     vars = [Variable(name, domain) for name, domain in variable_domains.items()]
-    vars_without_class_var = filter(lambda v: v.name != class_var.name, vars)
+    vars.pop() # remove Salary variable
 
     factors = []
-    for i, v in enumerate(vars_without_class_var):
+    for i, v in enumerate(vars):
         factor = Factor(f"{v.name},{class_var.name}", [v, class_var])
         factors.append(factor)
 
-        dict = {}
-        for row in input_data:
-            items = row.split(",")
-            key = (items[i], items[-1])
-            dict[key] = dict.get(key, 0) + 1
+        factor_data = map(lambda row: (row[i], row[-1]), input_data)
+        counts = Counter(factor_data)
 
-        values = []
-        for key, value in dict.items():
-            values.append(list(key) + [value])
+        total = sum(counts.values())
+        values = list(map(lambda i: list(i[0]) + [i[1]/total], counts.items()))
         factor.add_values(values)
 
-    all_factors = [Factor(class_var.name, [class_var])] + factors
+    class_var_factor = Factor(class_var.name, [class_var])
+    salary_counts = Counter(map(lambda row: row[-1], input_data))
+    total = sum(salary_counts.values())
+    salary_values = list(map(lambda i: [i[0], i[1]/total], salary_counts.items()))
+    class_var_factor.add_values(salary_values)
 
+    vars = [class_var] + vars
+    all_factors = [class_var_factor] + factors
     bn = BN("Naive_Bayes_Model_Salary", vars, all_factors)
 
     return bn
@@ -293,3 +313,7 @@ def explore(bayes_net, question):
     raise NotImplementedError
 
 
+data_file = "adult-train_tiny.csv"
+bn = naive_bayes_model(data_file)
+stuff = ve(bn, salary_variable, [])
+print(stuff.print_table())
