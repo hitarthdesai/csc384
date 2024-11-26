@@ -167,7 +167,6 @@ def multiply(factor_list):
         common_vars.intersection_update(factor.scope)
     common_vars = list(common_vars)
 
-
     first_factor = factor_list[0]
     first_factor_table = convert_factor_table_key_to_tuple(first_factor)
     for key, prob in first_factor_table.items():
@@ -220,22 +219,28 @@ def ve(bayes_net, var_query, varlist_evidence):
 
     '''
 
-    hidden_vars = filter(lambda v: v.name != var_query.name and v not in varlist_evidence, bayes_net.variables())
 
-    new_factors = []
-    for factor in bayes_net.factors():
-        if len(varlist_evidence) == 0:
-            new_factors.append(factor)
-            continue
+    if len(varlist_evidence) == 0:
+        new_factors = bayes_net.factors()
+    else:
+        new_factors = []
+        for factor in bayes_net.factors():
+            
 
-        for var in varlist_evidence:
-            if var in factor.scope:
-                new_factor = restrict(factor, var, var.dom[var.evidence_index])
-                new_factors.append(new_factor)
-            else:
-                new_factors.append(factor)
+            for var in varlist_evidence:
+                if var in factor.scope:
+                    new_factor = restrict(factor, var, var.dom[var.evidence_index])
+                    new_factors.append(new_factor)
+                else:
+                    new_factors.append(factor)
 
     factors = new_factors
+    
+    if len(varlist_evidence) == 0:
+        hidden_vars = filter(lambda v: v.name != var_query.name, bayes_net.variables())
+    else:
+        hidden_vars = filter(lambda v: v.name != var_query.name and v not in varlist_evidence, bayes_net.variables())
+        
     for var in hidden_vars:
         relevant_factors = []
         irrelevant_factors = []
