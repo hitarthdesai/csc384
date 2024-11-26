@@ -219,6 +219,8 @@ def ve(bayes_net, var_query, varlist_evidence):
 
     '''
 
+    if var_query is None:
+        return None
 
     if len(varlist_evidence) == 0:
         new_factors = bayes_net.factors()
@@ -240,7 +242,7 @@ def ve(bayes_net, var_query, varlist_evidence):
         hidden_vars = filter(lambda v: v.name != var_query.name, bayes_net.variables())
     else:
         hidden_vars = filter(lambda v: v.name != var_query.name and v not in varlist_evidence, bayes_net.variables())
-        
+
     for var in hidden_vars:
         relevant_factors = []
         irrelevant_factors = []
