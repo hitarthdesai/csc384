@@ -16,7 +16,7 @@ def convert_factor_table_key_to_tuple(factor):
             saved_values.append(v.get_assignment_index())
 
         prob_dict = {}
-        factor.get_values_recursive(factor.scope, prob_dict)
+        get_values_recursive(factor, factor.scope, prob_dict)
 
         for v in factor.scope:
             v.set_assignment_index(saved_values[0])
@@ -169,7 +169,7 @@ def multiply(factor_list):
 
 
     first_factor = factor_list[0]
-    first_factor_table = convert_factor_table_key_to_tuple(first_factor.get_table())
+    first_factor_table = convert_factor_table_key_to_tuple(first_factor)
     for key, prob in first_factor_table.items():
 
         new_values = [None] * len(new_factor_scope)
@@ -179,7 +179,7 @@ def multiply(factor_list):
             new_values[idx] = val
 
         for second_factor in factor_list[1:]:
-            second_factor_table = convert_factor_table_key_to_tuple(second_factor.get_table())
+            second_factor_table = convert_factor_table_key_to_tuple(second_factor)
 
             for second_key, second_prob in second_factor_table.items():
                 same_common_vars = all(key[i] == second_key[i] for i in range(len(key)))
@@ -340,7 +340,7 @@ def explore(bayes_net, question):
     raise NotImplementedError
 
 
-data_file = "adult-train_tiny.csv"
-bn = naive_bayes_model(data_file)
-stuff = ve(bn, salary_variable, [])
-print(stuff.print_table())
+# data_file = "adult-train_tiny.csv"
+# bn = naive_bayes_model(data_file)
+# stuff = ve(bn, salary_variable, [])
+# print(stuff.print_table())
