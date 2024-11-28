@@ -7,6 +7,7 @@
 from collections import Counter
 from bnetbase import Variable, Factor, BN
 import csv
+from itertools import product
 
 def convert_factor_table_key_to_tuple(factor):
     def get_table(factor):
@@ -162,39 +163,38 @@ def multiply(factor_list):
     new_factor_scope = list(new_factor_scope)
     new_factor = Factor(new_factor_name, new_factor_scope)
 
-    common_vars = set()
+    num_entries_cartesian_product = 1
+    for v in new_factor_scope:
+        num_entries_cartesian_product *= len(v.domain())
+
+    cartesian_product = product(*[v.domain() for v in new_factor_scope])
+    new_values = []
+    for entry in cartesian_product:
+        new_values.append(list(entry) + [1])
+
+
     for factor in factor_list:
-        common_vars.intersection_update(factor.scope)
-    common_vars = list(common_vars)
+        factor_table = convert_factor_table_key_to_tuple(factor)
 
-    first_factor = factor_list[0]
-    first_factor_table = convert_factor_table_key_to_tuple(first_factor)
-    for key, prob in first_factor_table.items():
-
-        new_values = [None] * len(new_factor_scope)
-        stuff = zip(first_factor.scope, key)
-        for var, val in stuff:
-            idx = next((i for i, v in enumerate(new_factor_scope) if v.name == var.name), None)
-            new_values[idx] = val
-
-        for second_factor in factor_list[1:]:
-            second_factor_table = convert_factor_table_key_to_tuple(second_factor)
-
-            for second_key, second_prob in second_factor_table.items():
-                same_common_vars = all(key[i] == second_key[i] for i in range(len(key)))
-                if not same_common_vars:
-                    continue
+        indices = []
+        for f in factor.scope:
+            for i, v in enumerate(new_factor_scope):
+                if v.name == f.name:
+                    indices.append(i)
                 
-                stuff = zip(first_factor.scope, key)
-                for var, val in stuff:
-                    idx = next((i for i, v in enumerate(new_factor_scope) if v.name == var.name), None)
-                    new_values[idx] = val
+        for key, prob in factor_table.items():
 
-                prob *= second_prob
-                break
+            for entry in new_values:
+                match = True
+                for i, v in enumerate(key):
+                    if entry[indices[i]] != v:
+                        match = False
+                        break
 
-        new_factor.add_values([new_values + [prob]])
-
+                if match:
+                    entry[-1] *= prob
+            
+    new_factor.add_values(new_values)
     return new_factor
 
 
