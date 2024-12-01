@@ -142,7 +142,6 @@ def sum_out(factor, variable):
     return new_factor
 
 
-
 def multiply(factor_list):
     '''
     Multiply a list of factors together.
@@ -198,7 +197,6 @@ def multiply(factor_list):
     return new_factor
 
 
-
 def ve(bayes_net, var_query, varlist_evidence): 
     '''
     Execute the variable elimination algorithm on the Bayesian network bayes_net
@@ -219,40 +217,28 @@ def ve(bayes_net, var_query, varlist_evidence):
 
     '''
 
-    if len(varlist_evidence) == 0:
-        new_factors = bayes_net.factors()
-    else:
-        new_factors = []
-        for factor in bayes_net.factors():            
-            for var in varlist_evidence:
-                if var in factor.scope:
-                    new_factor = restrict(factor, var, var.dom[var.evidence_index])
-                    new_factors.append(new_factor)
-                else:
-                    new_factors.append(factor)
+    new_factors = []
+    for factor in bayes_net.factors():
+        for var in varlist_evidence:
+            if var not in factor.scope:
+                continue
+            factor = restrict(factor, var, var.get_evidence())
+        new_factors.append(factor)
 
-    factors = new_factors
-    
-    if var_query is None:
-        hidden_vars = filter(lambda v: v not in varlist_evidence, bayes_net.variables())
-    else:
-        hidden_vars = filter(lambda v: v.name != var_query.name and v not in varlist_evidence, bayes_net.variables())
-
+    factors_to_consider = new_factors
+    hidden_vars = filter(lambda v: v != var_query and v not in varlist_evidence, bayes_net.variables())
     for var in hidden_vars:
-        relevant_factors = []
-        irrelevant_factors = []
-        for factor in factors:
-            if var in factor.scope:
-                relevant_factors.append(factor)
-            else:
-                irrelevant_factors.append(factor)
+        relevant_factors = list(filter(lambda f: var in f.scope, factors_to_consider))
+        if len(relevant_factors) == 0:
+            continue
 
-        new_factor = multiply(relevant_factors)
-        new_factor = sum_out(new_factor, var)
-        factors = irrelevant_factors + [new_factor]
+        factors_to_consider = list(filter(lambda f: f not in relevant_factors, factors_to_consider))
+        multiplied_factor = multiply(relevant_factors)
+        summed_out_factor = sum_out(multiplied_factor, var)
+        factors_to_consider.append(summed_out_factor)
 
-    final_factor = multiply(factors)
-    final_factor = normalize(final_factor)
+    finally_multiplied_factor = multiply(factors_to_consider)
+    final_factor = normalize(finally_multiplied_factor)
     return final_factor
 
 
@@ -312,7 +298,7 @@ def naive_bayes_model(data_file, variable_domains=salary_variable_domains, class
 
         factor_data = map(lambda row: (row[i], row[-1]), input_data)
         counts = Counter(factor_data)
-        for s in salary_variable_domains["Salary"]:
+        for s in variable_domains["Salary"]:
             for value in v.domain():
                 if (value, s) not in counts:
                     counts[(value, s)] = 0
@@ -329,99 +315,260 @@ def naive_bayes_model(data_file, variable_domains=salary_variable_domains, class
 
     return bn
 
+def explore_question_1(bayes_net):
+    """
+    What percentage of the women in the test data set does our model predict having a salary >= $50K?
+    """
+    salary_var = bayes_net.get_variable("Salary")
+    evidence_vars = [
+        bayes_net.get_variable("Work"),
+        bayes_net.get_variable("Education"),
+        bayes_net.get_variable("Occupation"),
+        bayes_net.get_variable("Relationship"),
+    ]
 
-def explore(bayes_net, question):
-    '''    
-    Return a probability given a Naive Bayes Model and a question number 1-6. 
-    
-    The questions are below: 
-    4. What percentage of the men in the test data set satisfies the condition: P(S=">=50K"|Evidence) is strictly greater than P(S=">=50K"|Evidence,Gender)?
-    5. What percentage of the women in the test data set with a predicted salary over $50K (P(Salary=">=50K"|E) > 0.5) have an actual salary over $50K?
-    6. What percentage of the men in the test data set with a predicted salary over $50K (P(Salary=">=50K"|E) > 0.5) have an actual salary over $50K?
-
-    @return a percentage (between 0 and 100)
-    ''' 
-    ### YOUR CODE HERE ###
-
-   
-    test_data = []
+    female_count, female_high_salary_count = 0, 0
     with open('data/adult-test.csv', newline='') as csvfile:
         reader = csv.reader(csvfile)
         headers = next(reader, None)
-        
         gender_idx = headers.index("Gender")
-        work_idx = headers.index("Work")
-        education_idx = headers.index("Education")
-        occupation_idx = headers.index("Occupation")
-        relationship_idx = headers.index("Relationship")
 
         for row in reader:
-            test_data.append(row)
-    
-    salary_var = bayes_net.get_variable('Salary')
-    gender_var = bayes_net.get_variable('Gender')
-    
-    work_var = bayes_net.get_variable('Work')
-    education_var = bayes_net.get_variable('Education')
-    occupation_var = bayes_net.get_variable('Occupation')
-    relationship_var = bayes_net.get_variable('Relationship')
-    evidence_vars = [work_var, education_var, occupation_var, relationship_var]
-    
-    
-    match question:
-        case 1:
-            """
-            Q. What percentage of the women in the test data set does our model predict having a salary >= $50K?
-            """
-            female_count, female_high_salary_count = 0, 0
+            if row[gender_idx] == "Male":
+                continue
 
-            for instance in test_data:
-                if instance[gender_idx] == "Male":
+            female_count += 1
+            for i, val in enumerate(row):
+                if headers[i] == "Salary" or headers[i] in "Gender":
                     continue
+                bayes_net.get_variable(headers[i]).set_evidence(val)
 
-                female_count += 1
-                work_var.set_evidence(instance[work_idx])
-                education_var.set_evidence(instance[education_idx])
-                occupation_var.set_evidence(instance[occupation_idx])
-                relationship_var.set_evidence(instance[relationship_idx])
- 
-                salary_dist = ve(bayes_net, salary_var, evidence_vars)
-                salary_dist.print_table()
+            salary_dist = ve(bayes_net, salary_var, evidence_vars)
+            salary_var.set_assignment(">=50K")
+            prob_salary_ge_50k = salary_dist.get_value_at_current_assignments()
+            if prob_salary_ge_50k > 0.5:
+                female_high_salary_count += 1
 
-                # salary_var.set_assignment(">=50K")
-                # prob_salary_ge_50k = salary_dist.get_value_at_current_assignments()
-                # print(prob_salary_ge_50k)
-                # if prob_salary_ge_50k > 0.5:
-                #     female_high_salary_count += 1
+    return (female_high_salary_count / female_count) * 100
 
-            return (female_high_salary_count / female_count) * 100
-        
-        case 3:
-            """
-            Q. What percentage of the women in the test data set satisfies the condition: P(S=">=50K"|Evidence) is strictly greater than P(S=">=50K"|Evidence,Gender)?
-            """
-        
+def explore_question_2(bayes_net):
+    """
+    What percentage of the men in the test data set does our model predict having a salary >= $50K?
+    """
+    salary_var = bayes_net.get_variable("Salary")
+    evidence_vars = [
+        bayes_net.get_variable("Work"),
+        bayes_net.get_variable("Education"),
+        bayes_net.get_variable("Occupation"),
+        bayes_net.get_variable("Relationship"),
+    ]
 
-        case _:
-            raise ValueError("Invalid question number")
-    
+    male_count, male_high_salary_count = 0, 0
+    with open('data/adult-test.csv', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        headers = next(reader)
+        gender_idx = headers.index("Gender")
+
+        for row in reader:
+            if row[gender_idx] == "Female":
+                continue
+
+            male_count += 1
+            for i, val in enumerate(row):
+                if headers[i] == "Salary" or headers[i] == "Gender":
+                    continue
+                bayes_net.get_variable(headers[i]).set_evidence(val)
+
+            salary_dist = ve(bayes_net, salary_var, evidence_vars)
+            salary_var.set_assignment(">=50K")
+            prob_salary_ge_50k = salary_dist.get_value_at_current_assignments()
+            if prob_salary_ge_50k > 0.5:
+                male_high_salary_count += 1
+
+    return (male_high_salary_count / male_count) * 100
+
+def explore_question_3(bayes_net):
+    """
+    What percentage of the women in the test data set satisfies the condition: P(Salary=">=$50K"| Evidence) > P(Salary=">=$50K" | Evidence, Gender)
+    """
+    salary_var = bayes_net.get_variable("Salary")
+    gender_var = bayes_net.get_variable("Gender")
+    evidence_vars = [
+        bayes_net.get_variable("Work"),
+        bayes_net.get_variable("Education"),
+        bayes_net.get_variable("Occupation"),
+        bayes_net.get_variable("Relationship"),
+    ]
+
+    female_count, sat_count = 0, 0
+    with open('data/adult-test.csv', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        headers = next(reader, None)
+        gender_idx = headers.index("Gender")
+
+        for row in reader:
+            if row[gender_idx] == "Male":
+                continue
+
+            female_count += 1
+            for i, val in enumerate(row):
+                if headers[i] == "Salary" or headers[i] in "Gender":
+                    continue
+                bayes_net.get_variable(headers[i]).set_evidence(val)
+
+            salary_dist = ve(bayes_net, salary_var, evidence_vars)
+            salary_var.set_assignment(">=50K")
+            prob_salary_ge_50k = salary_dist.get_value_at_current_assignments()
+
+            gender_var.set_evidence("Female")
+            salary_dist = ve(bayes_net, salary_var, evidence_vars + [gender_var])
+            salary_var.set_assignment(">=50K")
+            prob_salary_ge_50k_given_female = salary_dist.get_value_at_current_assignments()
+            
+            if prob_salary_ge_50k > prob_salary_ge_50k_given_female:
+                sat_count += 1
+
+    return (sat_count / female_count) * 100
+
+def explore_question_4(bayes_net):
+    """
+    What percentage of the men in the test data set satisfies the condition: P(S=">=50K"|Evidence) is strictly greater than P(S=">=50K"|Evidence,Gender)?
+    """
+    salary_var = bayes_net.get_variable("Salary")
+    gender_var = bayes_net.get_variable("Gender")
+    evidence_vars = [
+        bayes_net.get_variable("Work"),
+        bayes_net.get_variable("Education"),
+        bayes_net.get_variable("Occupation"),
+        bayes_net.get_variable("Relationship"),
+    ]
+
+    male_count, sat_count = 0, 0
+    with open('data/adult-test.csv', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        headers = next(reader, None)
+        gender_idx = headers.index("Gender")
+
+        for row in reader:
+            if row[gender_idx] == "Female":
+                continue
+
+            male_count += 1
+            for i, val in enumerate(row):
+                if headers[i] == "Salary" or headers[i] in "Gender":
+                    continue
+                bayes_net.get_variable(headers[i]).set_evidence(val)
+
+            salary_dist = ve(bayes_net, salary_var, evidence_vars)
+            salary_var.set_assignment(">=50K")
+            prob_salary_ge_50k = salary_dist.get_value_at_current_assignments()
+
+            gender_var.set_evidence("Male")
+            salary_dist = ve(bayes_net, salary_var, evidence_vars + [gender_var])
+            salary_var.set_assignment(">=50K")
+            prob_salary_ge_50k_given_male = salary_dist.get_value_at_current_assignments()
+            
+            if prob_salary_ge_50k > prob_salary_ge_50k_given_male:
+                sat_count += 1
+
+    return (sat_count / male_count) * 100
+
+def explore_question_5(bayes_net):
+    """
+    What percentage of the women in the test data set with a predicted salary over $50K (P(Salary=">=50K"|E) > 0.5) have an actual salary over $50K?
+    """
+    salary_var = bayes_net.get_variable("Salary")
+    evidence_vars = [
+        bayes_net.get_variable("Work"),
+        bayes_net.get_variable("Education"),
+        bayes_net.get_variable("Occupation"),
+        bayes_net.get_variable("Relationship"),
+    ]
+
+    female_high_salary_count, sat_count = 0, 0
+    with open('data/adult-test.csv', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        headers = next(reader, None)
+        gender_idx = headers.index("Gender")
+
+        for row in reader:
+            if row[gender_idx] == "Male":
+                continue
+
+            is_salary_ge_50k = False
+            for i, val in enumerate(row):
+                if headers[i] == "Gender":
+                    continue
+                if headers[i] == "Salary":
+                    is_salary_ge_50k = val == ">=50K"
+                    continue
+                bayes_net.get_variable(headers[i]).set_evidence(val)
+
+            salary_dist = ve(bayes_net, salary_var, evidence_vars)
+            salary_var.set_assignment(">=50K")
+            prob_salary_ge_50k = salary_dist.get_value_at_current_assignments()
+
+            if prob_salary_ge_50k > 0.5:
+                female_high_salary_count += 1
+                if is_salary_ge_50k:
+                    sat_count += 1
+
+    return (sat_count / female_high_salary_count) * 100
+
+def explore_question_6(bayes_net):
+    """
+    What percentage of the men in the test data set with a predicted salary over $50K (P(Salary=">=50K"|E) > 0.5) have an actual salary over $50K?
+    """
+    salary_var = bayes_net.get_variable("Salary")
+    evidence_vars = [
+        bayes_net.get_variable("Work"),
+        bayes_net.get_variable("Education"),
+        bayes_net.get_variable("Occupation"),
+        bayes_net.get_variable("Relationship"),
+    ]
+
+    male_high_salary_count, sat_count = 0, 0
+    with open('data/adult-test.csv', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        headers = next(reader, None)
+        gender_idx = headers.index("Gender")
+
+        for row in reader:
+            if row[gender_idx] == "Female":
+                continue
+
+            is_salary_ge_50k = False
+            for i, val in enumerate(row):
+                if headers[i] == "Gender":
+                    continue
+                if headers[i] == "Salary":
+                    is_salary_ge_50k = val == ">=50K"
+                    continue
+                bayes_net.get_variable(headers[i]).set_evidence(val)
+
+            salary_dist = ve(bayes_net, salary_var, evidence_vars)
+            salary_var.set_assignment(">=50K")
+            prob_salary_ge_50k = salary_dist.get_value_at_current_assignments()
+
+            if prob_salary_ge_50k > 0.5:
+                male_high_salary_count += 1
+                if is_salary_ge_50k:
+                    sat_count += 1
+
+    return (sat_count / male_high_salary_count) * 100
+
+explore_question_functions = {
+    1: explore_question_1,
+    2: explore_question_2,
+    3: explore_question_3,
+    4: explore_question_4,
+    5: explore_question_5,
+    6: explore_question_6
+}
+
+def explore(bayes_net, question):
+    return explore_question_functions[question](bayes_net)
+
 if __name__ == '__main__':
     data_file = "data/adult-train.csv"
     bn = naive_bayes_model(data_file)
-    a1 = explore(bn, 1)
-    print(a1)
-
-    # a2 = explore(bn, 2)
-    # print(a2)
-
-    # a3 = explore(bn, 3)
-    # print(a3)
-
-    # a4 = explore(bn, 4)
-    # print(a4)
-
-    # a5 = explore(bn, 5)
-    # print(a5)
-
-    # a6 = explore(bn, 6)
-    # print(a6)
