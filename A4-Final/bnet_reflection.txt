@@ -1,11 +1,5 @@
 1. Explain what the calculations above might or might not tell you about the "fairness" of your Naive Bayesian network. Explain in 50-100 words.
-
-
-
+The calculations provide insights into demographic parity in salaries. They highlight whether gender biases exist in salary predictions, such as discrepancies between predicted and actual salaries or between gender groups. This only forms a part of "fairness" regarding salary predictions. There are other metrics at play, like contribution of intersection of multiple factors to inequality (example: There's a work-salary factor, but no work-salary-age) factor. Moreover, such models are heavily influenced by structural biases in the data so its important to look out for those.
 
 2. Would you be willing to use your model to recommend starting salaries for employees at a firm? Why or why not? Explain in 50-100 words.
-
-
-
-
-
+Although there may be some level of accuracy in predicting starting salaries, I would not recommend using this model primarily because it relies on historical data which risks carrying forward old biases around gender discrimination into recent salary predictions. Moreover, our evaluation of fairness alone cannot guarantee the model's equitable operation across all groups. There are other ethical considerations to using such a model which needs to be reviewed, and requires the model to be refined before using it to predict real-world salaries.
